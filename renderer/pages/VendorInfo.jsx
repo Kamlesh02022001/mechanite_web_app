@@ -211,7 +211,7 @@ const VendorInfo = () => {
           console.log("Sending data to API:", formData);
           try {
             const response = await axios.put(
-                `https://machanite-be.onrender.com/vendor/update/${id}`,
+                `http://localhost:4000/vendor/update/${id}`,
                 formData,
                 {
                     headers: {
@@ -247,8 +247,8 @@ const VendorInfo = () => {
         useEffect(() => {
             const fetchData = async () => {
                 try {
-                 // const response = await axios.get('https://machanite-be.onrender.com/customer/${id}');
-                    const response = await axios.get(`https://machanite-be.onrender.com/vendor/${id}`);
+                 // const response = await axios.get('http://localhost:4000/customer/${id}');
+                    const response = await axios.get(`http://localhost:4000/vendor/${id}`);
 
                     setProductData(response.data);
                     console.log(response.data); // Log the data fetched

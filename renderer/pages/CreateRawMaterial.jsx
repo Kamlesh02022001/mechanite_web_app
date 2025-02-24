@@ -1,33 +1,53 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Dashboard from './Dashboard';
 import Header from './Header';
 import axios from 'axios';
+import { TiVendorAndroid } from 'react-icons/ti';
 
 const CreateRawMaterial = () => {
     const [materialType, setMaterialType] = useState('');
     const [vendor, setVendor] = useState('');
     const [materialName, setMaterialName] = useState('');
+    const [vendors, setVendors] = useState([]); // Store vendors from API
     const [errors, setErrors] = useState({});
     const [successMessage, setSuccessMessage] = useState('');
     const [loading, setLoading] = useState(false);
     const [apiError, setApiError] = useState('');
+    const [quantity, setQuantity] = useState('');
+
+    // Fetch vendors from API when component mounts
+    useEffect(() => {
+        const fetchVendors = async () => {
+            try {
+                const response = await axios.get('http://localhost:4000/vendor/all');
+                setVendors(response.data); // Assuming response.data is an array of vendors
+                console.log(vendors)
+            } catch (error) {
+                console.error('Error fetching vendors:', error);
+                setApiError('Failed to load vendors.');
+            }
+        };
+
+        fetchVendors();
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         const newErrors = {};
         let isValid = true;
 
-        // Validation
         if (!materialType.trim()) {
             isValid = false;
             newErrors.materialType = 'Enter Material type.';
         }
-
+        if (!quantity.trim()) {
+            isValid = false;
+            newErrors.quantity = 'Enter Quantity.';
+        }
         if (!vendor.trim()) {
             isValid = false;
-            newErrors.vendor = 'Enter Vendor.';
+            newErrors.vendor = 'Select Vendor.';
         }
-
         if (!materialName.trim()) {
             isValid = false;
             newErrors.materialName = 'Enter Material Name.';
@@ -36,16 +56,16 @@ const CreateRawMaterial = () => {
         if (isValid) {
             setErrors({});
             setSuccessMessage('');
-            setLoading(true);  // Start loading
+            setLoading(true);
 
-            // API request using axios
             try {
                 const response = await axios.post(
-                    'https://machanite-be.onrender.com/raw-material/create',
+                    'http://localhost:4000/raw-material/create',
                     {
-                        material_type: materialType,  // Adjusted field names to match backend
-                        material_name: materialName,  // Adjusted field names to match backend
-                        vendor_name: vendor ,         // Adjusted field names to match backend
+                        material_type: materialType,
+                        material_name: materialName,
+                        vendor_id: vendor, 
+                        quantity: quantity, 
                     },
                     {
                         headers: {
@@ -53,24 +73,20 @@ const CreateRawMaterial = () => {
                         },
                     }
                 );
-                console.log("doonnnee")
-                // Handle successful response
+
                 setSuccessMessage('Material created successfully!');
                 setMaterialType('');
                 setVendor('');
                 setMaterialName('');
                 setApiError('');
+                setQuantity('');
 
             } catch (error) {
                 console.error('Error response:', error.response);
-                // Handle errors
-                if (error.response) {
-                    setApiError(error.response.data.message || 'Something went wrong!');
-                } else {
-                    setApiError('An error occurred while submitting the form.');
-                }
+                setApiError(error.response?.data?.message || 'Something went wrong!');
+                
             } finally {
-                setLoading(false);  // End loading
+                setLoading(false);
             }
         } else {
             setErrors(newErrors);
@@ -81,22 +97,19 @@ const CreateRawMaterial = () => {
     return (
         <div className='flex'>
             <Dashboard />
-
-            {/* Right side */}
             <div className='w-full h-screen bg-[#f7f5f5]'>
-                {/* Header */}
                 <div className='sticky top-0'>
                     <Header />
                 </div>
 
-                {/* Main Content */}
                 <div className='flex items-center flex-col justify-center pb-5 h-[615px] border-black'>
                     <div className='w-[600px] hl-72 -translate-y-2 flex flex-col justify-center items-center py-10 px- bg-[#ffffffe2] shadow-2xl rounded-2xl'>
-                        <h1 className='flex justify-center text-2xl font-bold mt-1 text-[#7d40ff]'>Please enter material type and its quantity</h1>
+                        <h1 className='flex justify-center text-2xl font-bold mt-1 text-[#7d40ff]'>
+                            Please enter material type and its quantity
+                        </h1>
 
-                        <form action="" className='' onSubmit={handleSubmit}>
-                            
-                            <div className='flex flex-col  mt-8'>
+                        <form onSubmit={handleSubmit}>
+                            <div className='flex flex-col mt-8'>
                                 <label htmlFor="materialType" className='text-gray-800 ml-1 font-semibold'>Material Type</label>
                                 <select name="materialType"
                                     id="materialType" 
@@ -108,9 +121,7 @@ const CreateRawMaterial = () => {
                                     <option value="colour">Colour</option>
                                     <option value="insert">Insert</option>
                                 </select>
-                                {errors.materialType && (
-                                    <p className="text-red-500 text-sm mt-1">{errors.materialType}</p>
-                                )}
+                                {errors.materialType && <p className="text-red-500 text-sm mt-1">{errors.materialType}</p>}
                             </div>
 
                             <div className='flex flex-col order border-black mt-7'>
@@ -120,21 +131,33 @@ const CreateRawMaterial = () => {
                                     placeholder='Enter Material Name'
                                     onChange={(e) => setMaterialName(e.target.value)}
                                     className='bg-gray-200 rounded-full mt-1 py-2 px-4 w-72' />
-                                {errors.materialName && (
-                                    <p className="text-red-500 text-sm mt-1">{errors.materialName}</p>
-                                )}
+                                {errors.materialName && <p className="text-red-500 text-sm mt-1">{errors.materialName}</p>}
+                            </div>
+
+                            {/* Updated Vendor Selection */}
+                            <div className='flex flex-col order border-black mt-7'>
+                                <label htmlFor="vendor" className='text-gray-800 ml-1 font-semibold'>Vendor</label>
+                                <select name="vendor"
+                                    id="vendor"
+                                    value={vendor}
+                                    onChange={(e) => setVendor(e.target.value)}
+                                    className='bg-gray-200 rounded-full mt-1 py-2 px-4 w-72'>
+                                    <option value="" disabled>Select Vendor</option>
+                                    {vendors.map((vendor) => (
+                                        <option key={vendor.id} value={vendor.id}>{vendor.vendor_name}</option> // Adjust according to API response
+                                    ))}
+                                </select>
+                                {errors.vendor && <p className="text-red-500 text-sm mt-1">{errors.vendor}</p>}
                             </div>
 
                             <div className='flex flex-col order border-black mt-7'>
-                                <label htmlFor="vendor" className='text-gray-800 ml-1 font-semibold'>Vendor</label>
-                                <input type="text"
-                                    placeholder='Enter Vendor'
-                                    value={vendor}
-                                    onChange={(e) => setVendor(e.target.value)}
+                                <label htmlFor="quantity" className='text-gray-800 ml-1 font-semibold'>Quantity</label>
+                                <input type="number"
+                                    value={quantity}
+                                    placeholder='Enter Quantity'
+                                    onChange={(e) => setQuantity(e.target.value)}
                                     className='bg-gray-200 rounded-full mt-1 py-2 px-4 w-72' />
-                                {errors.vendor && (
-                                    <p className="text-red-500 text-sm mt-1">{errors.vendor}</p>
-                                )}
+                                {errors.quantity && <p className="text-red-500 text-sm mt-1">{errors.quantity}</p>}
                             </div>
 
                             <div className='flex justify-center mb-2 mt-8'>
@@ -147,13 +170,8 @@ const CreateRawMaterial = () => {
                                 </button>
                             </div>
 
-                            {successMessage && (
-                                <p className="text-green-500 flex justify-center text-lg mt-4">{successMessage}</p>
-                            )}
-
-                            {apiError && (
-                                <p className="text-red-500 flex justify-center text-lg mt-4">{apiError}</p>
-                            )}
+                            {successMessage && <p className="text-green-500 flex justify-center text-lg mt-4">{successMessage}</p>}
+                            {apiError && <p className="text-red-500 flex justify-center text-lg mt-4">{apiError}</p>}
                         </form>
                     </div>
                 </div>

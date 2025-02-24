@@ -18,7 +18,8 @@ const ProductList = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const response = await axios.get('https://machanite-be.onrender.com/api/get-all-products');
+                const response = await axios.get('http://localhost:4000/api/get-all-products');
+                console.log(response.data)
                 setProductData(response.data);
                 setFilteredData(response.data);
             } catch (err) {
@@ -42,7 +43,7 @@ const ProductList = () => {
 
     const handleMoreClick = (product_id) => {
         router.push({
-            pathname: '/ViewProduct',
+            pathname: '/EditViewProduct',
             query: { product_id },
         });
     };

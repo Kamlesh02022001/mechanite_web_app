@@ -18,7 +18,7 @@ const Dashboard = () => {
       {/* Left sidebar  bg-[#0b0f24fa]*/}
       <div className='bg-[#592fb4] w-64 h-screen pb-11 flex flex-col pl-4'>
         {/* Heading */}
-        <div className='text-white mt-7 mb-2 text-2xl flex ml- font-bold'>
+        <div className='text-white mt-7 mb-2 text-2xl flex font-bold'>
           Machanite
         </div>
 
@@ -28,11 +28,11 @@ const Dashboard = () => {
 
           <div className=' ml- mt-3 text-sm font-light text-gray-200 flex'>
             <AiOutlineDashboard className='mt-[3px]' />
-            <p className='ml-2 '><Link href="/Home">DashBoard</Link></p>
+            <p className='ml-2 '><Link href="/Signup">Signup</Link></p>
           </div>
           <div className=' ml- mt-4 text-sm font-light text-gray-200 flex'>
             <FaInbox className='mt-[3px]' />
-            <p className='ml-2 '><Link  href="/Login"  >Login</Link></p>
+            <p className='ml-2 '><Link  href="/MachineList">MachineList</Link></p>
           </div>
           <div className=' ml- mt-4 text-sm font-light text-gray-200 flex'>
             <IoAnalytics className='mt-[3px]' />
@@ -49,7 +49,7 @@ const Dashboard = () => {
           
           <div className=' ml- mt-4 text-sm font-light text-gray-200 flex'>
             <IoCutOutline className='mt-[3px]' />
-            <p className='ml-2 '><Link href="/VendorInfo">Vendor Info</Link></p>
+            <p className='ml-2 '><Link href="/ProductHistory">ProductHistory</Link></p>
           </div>
           <div className=' ml- mt-4 text-sm font-light text-gray-200 flex'>
             <MdEmail className='mt-[3px]' /> 
@@ -57,23 +57,23 @@ const Dashboard = () => {
           </div>
           <div className=' ml- mt-4 text-sm font-light text-gray-200 flex'>
             <HiUserGroup className='mt-[3px]' />
-            <p className='ml-2 '><Link href="/Customers">Customers</Link></p>
+            <p className='ml-2 '><Link href="/CreateRawMaterial">CreateRawMaterial</Link></p>
           </div>
           <div className=' ml- mt-4 text-sm font-light text-gray-200 flex'>
             <MdEmail className='mt-[3px]' />
-            <p className='ml-2 '><Link href="/PurchaseOrder">Purchase Order</Link></p>
+            <p className='ml-2 '><Link href="/SalesOrder">Sales Order</Link></p>
           </div>
           <div className=' ml- mt-3 text-sm font-light text-gray-200 flex'>
             <IoPricetagSharp className='mt-[3px]' />
-            <p className='ml-2 '><Link href="/StockDetails">Stock Details</Link></p>
+            <p className='ml-2 '><Link href="/WorkOrderList">Work Order List</Link></p>
           </div>
           <div className=' ml- mt-4 text-sm font-light text-gray-200 flex'>
             <MdEmail className='mt-[3px]' />
-            <p className='ml-2 '><Link href="/ProductHistory">Product History</Link></p>
+            <p className='ml-2 '><Link href="/StockDetails">StockDetails</Link></p>
           </div>
           <div className=' ml- mt-4 text-sm font-light text-gray-200 flex'>
             <MdEmail className='mt-[3px]' />
-            <p className='ml-2 '><Link href="/ViewProduct">View Product </Link></p>
+            <p className='ml-2 '><Link href="/AddRawMaterial">AddRawMaterial</Link></p>
           </div>
         </div>
 
@@ -82,12 +82,12 @@ const Dashboard = () => {
           <p className='text-gray-100 ml- font-mono'>SALES CHANNELS</p>
           <div className=' ml- mt-3 text-sm font-light text-gray-200 flex'>
             <LuBox className='mt-[3px]' />
-            <p className='ml-2 '><Link href="/Temp">Temp</Link></p>
+            <p className='ml-2 '><Link href="/ViewWorkOrder"> View Work Order</Link></p>
           </div>
           
           <div className=' ml- mt-4 text-sm font-light text-gray-200 flex'>
             <MdEmail className='mt-[3px]' />
-            <p className='ml-2 '><Link href="/CustomerInfo">Customer Info</Link></p>
+            <p className='ml-2 '><Link href="/SalesList">SalesList</Link></p>
           </div>
          
          

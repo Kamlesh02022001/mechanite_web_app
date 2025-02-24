@@ -42,7 +42,7 @@ const Login = () => {
         setIsLoading(true);
 
         try {
-            const response = await fetch('https://machanite-be.onrender.com/login', {
+            const response = await fetch('http://localhost:4000/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ phonenumber, password }),
@@ -139,15 +139,15 @@ const Login = () => {
                     </div>
                     <p>
                         Don't have an account?{' '}
-                        <Link href='/registration' className='text-[#6924ff]'>
+                        <Link href='/Signup' className='text-[#6924ff]'>
                             Register here
                         </Link>
                     </p>
                 </div>
             </div>
-            <Link href='/home'>
+            {/* <Link href='/home'>
                 <p className=' '>Go to home</p>
-            </Link>
+            </Link> */}
         </div>
     );
 };

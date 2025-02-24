@@ -1,213 +1,273 @@
-import React, { useState } from "react";
-import Dashboard from "./Dashboard";
-import Header from "./Header";
-// import { FaPlus, FaTrash } from "react-icons/fa6";
-import { FaPlus, FaTrash } from "react-icons/fa";
+import Link from 'next/link';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import Dashboard from './Dashboard';
+import Header from './Header';
+import { useRouter } from 'next/router';
+import Papa from 'papaparse';
 
-const Temp = () => {
-  const [purchaseOrder, setPurchaseOrder] = useState("");
-  const [customerName, setCustomerName] = useState("");
-  const [date, setDate] = useState("");
-  const [billing, setBilling] = useState("");
-  const [shipping, setShipping] = useState("");
-  const [errors, setErrors] = useState({});
-  const [successMessage, setSuccessMessage] = useState("");
 
-  // Products list (each item has productName and quantity)
-  const [products, setProducts] = useState([]);
+const ViewWorkOrder = () => {
+    const [productData, setProductData] = useState("");
+    const [users, setUsers] = useState([]); // State to store user data
+    const [operators, setOperators] = useState([]);
 
-  // Function to add a new product entry
-  const addProduct = () => {
-    setProducts([...products, { productName: "", quantity: "" }]);
-  };
+    const router = useRouter();
+    const { id } = router.query;
+    console.log('Received ID: Effect', id);
+   
+   
+    // Fetch data from API using Axios
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
 
-  // Function to remove a product entry
-  const removeProduct = (index) => {
-    const updatedProducts = products.filter((_, i) => i !== index);
-    setProducts(updatedProducts);
-  };
+                const response = await axios.get(`http://localhost:4000/work-order/${id}`);
+                setProductData(response.data);
+                
+                
+                const data = response.data;
+                console.log('API response:',data);
 
-  // Function to handle input changes for product fields
-  const handleProductChange = (index, field, value) => {
-    const updatedProducts = [...products];
-    updatedProducts[index][field] = value;
-    setProducts(updatedProducts);
-  };
+               
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const newErrors = {};
-    let isValid = true;
+                                            
 
-    if (!purchaseOrder.trim()) {
-      isValid = false;
-      newErrors.purchaseOrder = "Purchase Order Number is required.";
-    }
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                // console.error('Error fetching data:', error.response?.data || error.message);
 
-    if (!customerName.trim()) {
-      isValid = false;
-      newErrors.customerName = "Customer Name is required.";
-    }
+                console.error(
+                    'Full error details:',
+                    error.response?.data || error.message,
+                );
+            }
+        };
 
-    if (!shipping.trim()) {
-      isValid = false;
-      newErrors.shipping = "Shipping Address is required.";
-    }
+        fetchData();
+    }, []);
 
-    if (!date.trim()) {
-      isValid = false;
-      newErrors.date = "Date is required.";
-    }
+ // Fetch Users Data
+ useEffect(() => {
+    const fetchUsers = async () => {
+        try {
+            const response = await axios.get(`http://localhost:4000/users/all`);
+            setOperators(response.data.operator || []); // Ensure `operator` exists
+            console.log('Users Data:', response.data);
+        } catch (error) {
+            console.error('Error fetching users:', error);
+        }
+    };
 
-    if (!billing.trim()) {
-      isValid = false;
-      newErrors.billing = "Billing Address is required.";
-    }
-
-    products.forEach((product, index) => {
-      if (!product.productName.trim()) {
-        isValid = false;
-        newErrors[`productName_${index}`] = "Product name is required.";
-      }
-      if (!product.quantity.trim() || product.quantity <= 0) {
-        isValid = false;
-        newErrors[`quantity_${index}`] = "Quantity is required and must be greater than zero.";
-      }
-    });
-
-    if (isValid) {
-      setErrors({});
-      setSuccessMessage("Form submitted successfully!");
-    } else {
-      setErrors(newErrors);
-      setSuccessMessage("");
-    }
-  };
-
-  return (
-    <>
-      <div className="flex">
-        <Dashboard />
-
-        {/* Right side */}
-        <div className="w-full h-screen bg-[#f7f5f5] overflow-y-auto">
-          {/* Header */}
-          <div className="sticky top-0">
-            <Header />
-          </div>
-
-          <div className="flex items-center flex-col justify-center pb-5 border-black mt-2">
-            {/* Main Content */}
-            <div className="flex flex-col justify-center items-center shadow-2xl bg-[#ffffffe2] py-10 rounded-xl w-[800px]">
-              {/* Heading */}
-              <h1 className="text-3xl font-bold text-[#7d40ff]">Create Purchase Order</h1>
-
-              <form className="mt-8" onSubmit={handleSubmit}>
-                {/* Purchase Order Number */}
-                <div className="flex flex-col">
-                  <label htmlFor="purchaseOrder" className="text-gray-800 font-semibold">
-                    Enter Purchase Order Number
-                  </label>
-                  <input
-                    type="number"
-                    id="purchaseOrder"
-                    value={purchaseOrder}
-                    onChange={(e) => setPurchaseOrder(e.target.value)}
-                    className="bg-gray-200 rounded-full mt-1 py-2 px-4 w-72"
-                  />
-                  {errors.purchaseOrder && <p className="text-red-500 text-sm mt-1">{errors.purchaseOrder}</p>}
-                </div>
-
-                {/* Customer Name */}
-                <div className="flex flex-col mt-4">
-                  <label htmlFor="customerName" className="text-gray-800 font-semibold">
-                    Customer Name
-                  </label>
-                  <select
-                    id="customerName"
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                    className="bg-gray-200 rounded-full mt-1 py-2 px-4 w-72"
-                  >
-                    <option value="" disabled selected>
-                      -- Select customer --
-                    </option>
-                    <option value="Customer A">Customer A</option>
-                    <option value="Customer B">Customer B</option>
-                    <option value="Customer C">Customer C</option>
-                  </select>
-                  {errors.customerName && <p className="text-red-500 text-sm mt-1">{errors.customerName}</p>}
-                </div>
-
-                {/* Button to add product fields */}
-                <div className="flex justify-center items-center mt-4">
-                  <button type="button" onClick={addProduct} className="p-2 bg-gray-200 rounded-full hover:bg-gray-300">
-                    <FaPlus className="text-xl text-[#7d40ff]" />
-                  </button>
-                </div>
-
-                {/* Dynamic Product Selection (only appears after clicking +) */}
-                {products.length > 0 && products.map((product, index) => (
-                  <div key={index} className="flex items-center space-x-4 mt-4">
-                    {/* Product Name */}
-                    <div className="flex flex-col">
-                      <label className="text-gray-800 font-semibold">Product Name</label>
-                      <select
-                        value={product.productName}
-                        onChange={(e) => handleProductChange(index, "productName", e.target.value)}
-                        className="bg-gray-200 rounded-full mt-1 py-2 px-4 w-48"
-                      >
-                        <option value="" disabled selected>
-                          -- Select product --
-                        </option>
-                        <option value="Product A">Product A</option>
-                        <option value="Product B">Product B</option>
-                        <option value="Product C">Product C</option>
-                      </select>
-                      {errors[`productName_${index}`] && (
-                        <p className="text-red-500 text-sm mt-1">{errors[`productName_${index}`]}</p>
-                      )}
-                    </div>
-
-                    {/* Quantity */}
-                    <div className="flex flex-col">
-                      <label className="text-gray-800 font-semibold">Quantity</label>
-                      <input
-                        type="number"
-                        placeholder="Enter quantity"
-                        value={product.quantity}
-                        onChange={(e) => handleProductChange(index, "quantity", e.target.value)}
-                        className="bg-gray-200 rounded-full mt-1 py-2 px-4 w-32"
-                      />
-                      {errors[`quantity_${index}`] && (
-                        <p className="text-red-500 text-sm mt-1">{errors[`quantity_${index}`]}</p>
-                      )}
-                    </div>
-
-                    {/* Remove Button */}
-                    {index > 0 && (
-                      <button type="button" onClick={() => removeProduct(index)} className="p-2 bg-red-500 rounded-full text-white">
-                        <FaTrash />
-                      </button>
-                    )}
-                  </div>
-                ))}
-
-                {/* Submit Button */}
-                <div className="flex justify-center mt-6">
-                  <button type="submit" className="bg-[#7d40ff] rounded-full px-6 py-2 text-white">
-                    Create Purchase Order
-                  </button>
-                </div>
-              </form>
-
-              {successMessage && <p className="text-green-500 mt-4">{successMessage}</p>}
+    fetchUsers();
+}, []);
+  
+    return (
+        <div className="flex">
+            {/* Dashboard  */}
+            <div className="">
+                <Dashboard />
             </div>
-          </div>
-        </div>
-      </div>
-    </>
-  );
+
+            {/* Right side */}
+            <div className="w-full overflow-hidden ">
+                
+                {/* Main Content */}
+                <div className=" pb-10 h-screen overflow-y-auto bg-[#f7f5f5] border-black">
+                    {/* Header */}
+                    <div className="sticky top-0">
+                        <Header />
+                    </div>
+
+                    {/* Main data  */}
+                    <div className="w-[800px] mx-auto flex flex-col  py-10 mt-8 px-8 bg-[#ffffffe2] shadow-2xl rounded-2xl">
+                    
+                        <h1 className="flex justify-center text-2xl font-bold  text-[#7d40ff]">MES/WO/02/2025/001</h1>
+                        <h1 className="flex justify-center text-gray-800 font-bold mt-1">Date : 13/02/2025</h1>
+                        <div className='border border-[#7d40ff] w-full mt-4'></div> 
+
+                           
+
+                         {/* Component Description and Status */}
+                        <div className='flex  mt-6'>
+                            <p className='w-80 mr-10 ml-10 '><strong className='text-gray-800 font-bold'>Customer Name :</strong> {productData.data?.product?.customer?.customer_name || 'N/A'}</p>
+                            <p className='w-80 mr-10 ml-10 '><strong className='text-gray-800 font-bold'>Item No :</strong> {productData.data?.product?.item_code || 'N/A'}</p>
+                        </div>  
+
+                        <div className='flex  mt-4  '>
+                            <p className='w-80 mr-10 ml-10 '><strong className='text-gray-800 font-bold'>Part Name :</strong> {productData.data?.product?.component_description || 'N/A'}</p>
+                            <p className='w-80 mr-10 ml-10 '><strong className='text-gray-800 font-bold'>Scheduled Machine Number :</strong> {productData.data?.product?.product_histories?.scheduled_machine_number || 'N/A'}</p>
+                            {/* <p className='w-80 mr-10 ml-10 '><strong className='text-gray-800 font-bold'>Raw Material Type :</strong> {productData.data?.workOrderRawMaterials?.material_type || 'N/A'}</p> */}
+                        </div>
+                         
+                        
+                        <div className='flex  mt-4  '>
+                            <p className='w-80 mr-10 ml-10 '><strong className='text-gray-800 font-bold'>Expected Quantity :</strong> {productData.data?.billing_address || 'N/A'}</p>
+                            <p className='w-80 mr-10 ml-10 '><strong className='text-gray-800 font-bold'>Mold Number :</strong> {productData.data?.product?.mold_no || 'N/A'}</p>
+                        </div> 
+
+                        {/* Table for Raw Material Details */}
+                        <div className="overflow-x-auto overflow-y-auto rounded-lg shadow-lg border border-gray-300 mt-6 mx-10">
+                            <table className="min-w-full border border-gray-300 hadow-lg bg-white">
+                                <thead>
+                                    <tr className="bg-gray-200">
+                                        <th className="border border-gray-300 px-4 py-1.5 text-gray-700">Raw Material Type</th>
+                                        <th className="border border-gray-300 px-4 py-1.5 text-gray-700">Name</th>
+                                        <th className="border border-gray-300 px-4 py-1.5 text-gray-700">Quantity</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {productData.data?.workOrderRawMaterials?.map((material, index) => (
+                                        <tr key={index} className="hover:bg-gray-100">
+                                            <td className="border border-gray-300 px-4 py-1.5 text-center">{material.material_type || 'N/A'}</td>
+                                            <td className="border border-gray-300 px-4 py-1.5 text-center">{material.rawMaterial?.material_name || 'N/A'}</td>
+                                            <td className="border border-gray-300 px-4 py-1.5 text-center">{material.required_quantity || 'N/A'}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div className='flex  mt-6'>
+                            <div className='w-80 mr-10 ml-9 order border-black flex flex-col'>
+                                <label htmlFor="" className='text-gray-800 ml-1 font-bold' >Used Machine Number :</label>
+                                <input type="text" 
+                                       placeholder='Enter Used Machine Number' 
+                                       className='bg-gray-200 rounded-full outline-non focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72' 
+                                       name="" id="" />
+                            </div>
+                            <div className='w-80 mr-10 ml-9 order border-black flex flex-col'>
+                                <label htmlFor="" className='text-gray-800 ml-1 font-bold' >Finished Date :</label>
+                                <input type="date" 
+                                       placeholder='Enter Finished Date' 
+                                       className='bg-gray-200 rounded-full outline-non focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72' 
+                                       name="" id="" />
+                            </div>
+                        </div> 
+
+                        <div className='flex  mt-4  '>
+                            <div className='w-80 mr-10 ml-9 order border-black flex flex-col'>
+                                <label htmlFor="" className='text-gray-800 ml-1 font-bold' >Shift / Date :</label>
+                                <input type="date" 
+                                       placeholder='Enter Shift / Date' 
+                                       className='bg-gray-200 rounded-full outline-non focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72' 
+                                       name="" id="" />
+                            </div>
+                            <div className='w-80 mr-10 ml-9 order border-black flex flex-col'>
+                                <label htmlFor="" className='text-gray-800 ml-1 font-bold' >Operator Name :</label>
+                                <select 
+                                    id="operator"
+                                    className='bg-gray-200 rounded-full outline-none border border-gray-400 mt-1 py-2 px-4 w-72'
+                                >
+                                    <option value="">-- Select Operator --</option>
+                                    {operators.map((operator) => (
+                                        <option key={operator.id} value={operator.id}>
+                                            {operator.name}
+                                        </option>
+                                    ))}
+                                </select>
+
+
+                            </div>
+                        </div>
+
+                        <div className='flex  mt-6'>
+                            <div className='w-80 mr-10 ml-9 order border-black flex flex-col'>
+                                <label htmlFor="" className='text-gray-800 ml-1 font-bold' >Standard Qty :</label>
+                                <input type="text" 
+                                       placeholder='Enter Standard Qty' 
+                                       className='bg-gray-200 rounded-full outline-non focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72' 
+                                       name="" id="" />
+                            </div>
+                            <div className='w-80 mr-10 ml-9 order border-black flex flex-col'>
+                                <label htmlFor="" className='text-gray-800 ml-1 font-bold' >Working Hrs :</label>
+                                <input type="type" 
+                                       placeholder='Enter Working Hrs' 
+                                       className='bg-gray-200 rounded-full outline-non focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72' 
+                                       name="" id="" />
+                            </div>
+                        </div> 
+                        
+                        <div className='flex  mt-4  '>
+                            <div className='w-80 mr-10 ml-9 order border-black flex flex-col'>
+                                <label htmlFor="" className='text-gray-800 ml-1 font-bold' >OK Qty No's :</label>
+                                <input type="text" 
+                                       placeholder='Enter OK Qty No' 
+                                       className='bg-gray-200 rounded-full outline-non focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72' 
+                                       name="" id="" />
+                            </div>
+                            <div className='w-80 mr-10 ml-9 order border-black flex flex-col'>
+                                <label htmlFor="" className='text-gray-800 ml-1 font-bold' >Rejected Qty No's :</label>
+                                <input type="text" 
+                                       placeholder='Enter Rejected Qty No' 
+                                       className='bg-gray-200 rounded-full outline-non focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72' 
+                                       name="" id="" />
+                            </div>
+                        </div>
+                        
+                        <div className='flex  mt-4  '>
+                            <div className='w-80 mr-10 ml-9 order border-black flex flex-col'>
+                                <label htmlFor="" className='text-gray-800 ml-1 font-bold' >Reason of Rejection :</label>
+                                <input type="text" 
+                                       placeholder='Enter Reason of Rejection' 
+                                       className='bg-gray-200 rounded-full outline-non focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72' 
+                                       name="" id="" />
+                            </div>
+                            <div className='w-80 mr-10 ml-9 order border-black flex flex-col'>
+                                <label htmlFor="" className='text-gray-800 ml-1 font-bold' >Runner Kg's :</label>
+                                <input type="text" 
+                                       placeholder='Enter Runner kg' 
+                                       className='bg-gray-200 rounded-full outline-non focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72'/>
+                            </div>
+                        </div>
+                        
+                        <div className='flex  mt-4  '>
+                            <div className='w-80 mr-10 ml-9 order border-black flex flex-col'>
+                                <label htmlFor="" className='text-gray-800 ml-1 font-bold' >Lumps Kg's :</label>
+                                <input type="text" 
+                                       placeholder='Enter Lumps kg' 
+                                       className='bg-gray-200 rounded-full outline-non focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72' 
+                                       name="" id="" />
+                            </div>
+                            <div className='w-80 mr-10 ml-9 order border-black flex flex-col'>
+                                <label htmlFor="" className='text-gray-800 ml-1 font-bold' >Opeartor Efficiency (%) :</label>
+                                 <input type="text" 
+                                       placeholder='Enter Efficiency' 
+                                       className='bg-gray-200 rounded-full outline-non focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72'/>
+                            </div>
+                        </div>
+                        
+                        <div className='flex  mt-4  '>
+                            
+                            <div className='w-80 mr-10 ml-9 order border-black flex flex-col'>
+                                <label htmlFor="" className='text-gray-800 ml-1 font-bold' >Remark :</label>
+                                <select 
+                                name="" className='bg-gray-200 rounded-full outline-non focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72' id="">
+                                    <option value="Machine Breakdown" disabled>-- Select Remark --</option>
+                                    <option value="Machine Breakdown">Machine Breakdown</option>
+                                    <option value="Mold Breakdown">Mold Breakdown</option>
+                                    <option value="No Man Power">No Man Power</option>
+                                    <option value="Power off">Power off</option>
+                                    <option value="RM Shortage">RM Shortage</option>
+                                    <option value="No Plan">No Plan</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <button
+                            type="submit"
+                            className=" bg-[#7d40ff] mx-auto  rounded-full w-52 px-4 py-2.5 my-auto text-white mt-10"
+                        >
+                            Save
+                        </button>
+
+
+                    </div>
+                </div>
+            </div>
+        </div>  
+    );
+
 };
 
-export default Temp;
+export default ViewWorkOrder;

@@ -13,6 +13,7 @@ const StockDetails = () => {
     const [bagSize, setBagSize] = useState('');
     const [weight, setWeight] = useState('');
     const [errors, setErrors] = useState({});
+    const [quantity, setQuantity] = useState({});
     const [successMessage, setSuccessMessage] = useState("");
     const [errorMessage, setErrorMessage] = useState(""); // State to store error message
      const router = useRouter();
@@ -34,7 +35,7 @@ const StockDetails = () => {
             try {
                 setLoading(true);
                 const response = await axios.get(
-                    `https://machanite-be.onrender.com/api/get-product/${product_id}`,
+                    `http://localhost:4000/api/get-product/${product_id}`,
                 );
                 const productData = response.data;
                 console.log('API response:', productData);
@@ -115,6 +116,7 @@ const StockDetails = () => {
                 std_packing : stdPacking,
                 bag_size: bagSize,
                 weight_kg : weight,
+                quantity : quantity,
             };
             router.push({
                 pathname: '/ProductHistory', // Page to navigate to
@@ -123,10 +125,8 @@ const StockDetails = () => {
 
             try {
                 // Send the POST request
-                const response = await axios.post('https://machanite-be.onrender.com/stockDetail/create', formData);
+                const response = await axios.post('http://localhost:4000/stockDetail/create', formData);
 
-                
-                
                     setSuccessMessage("Data submitted successfully!");
                     setRow('');
                     setPosition('');
@@ -302,6 +302,29 @@ const StockDetails = () => {
                                             value={weight}
                                             onChange={(e) => setWeight(e.target.value)}
                                             readOnly
+                                        />
+                                        {errors.weight && (
+                                            <p className="text-red-500 text-sm mt-1">{errors.weight}</p>
+                                        )}
+                                    </div>
+                                </div>
+                                {/* Third div */}
+                                <div className="flex ml-14 mt-5">
+                                   
+                                    {/* weight */}
+                                    <div className="flex flex-col">
+                                        <label htmlFor="gstinNmber" className="ml-1 text-gray-700 font-semibold">
+                                            Quantity :
+                                        </label>
+                                        <input
+                                            type="number"
+                                            id="weight"
+                                            name="weight"
+                                            placeholder="Enter Weight"
+                                            className="bg-gray-200 rounded-full focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72 "
+                                            value={quantity}
+                                            onChange={(e) => setQuantity(e.target.value)}
+                                            
                                         />
                                         {errors.weight && (
                                             <p className="text-red-500 text-sm mt-1">{errors.weight}</p>

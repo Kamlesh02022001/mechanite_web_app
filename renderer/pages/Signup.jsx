@@ -15,6 +15,7 @@ const Signup = () => {
   const [errorMessage, setErrorMessage] = useState('');  
   const [showPassword, setShowPassword] = useState(false); // State to toggle password visibility
   const [showConfirmPassword, setShowConfirmPassword] = useState(false); // Toggle for confirm password
+   const [role, setRole] = useState("Admin"); // Default role
 
   const router = useRouter(); 
    
@@ -53,16 +54,21 @@ const Signup = () => {
       isValid = false;
       newErrors.confirmPassword = "Passwords do not match.";
     }
+     if (!role) {
+      isValid = false;
+      newErrors.role = "Role selection is required.";
+    }
 
     setErrors(newErrors);
 
     if (isValid) {
       try {
-        const response = await axios.post("https://machanite-be.onrender.com/register", {
+        const response = await axios.post("http://localhost:4000/register", {
           name,
           phonenumber,
           email,
           password,
+          role,
         });
 
         setSuccessMessage(response.data.message || "Registration successful!");
@@ -80,7 +86,7 @@ const Signup = () => {
 
   return (
     <div className='w-screen h-screen flex justify-center items-center'>
-      <div className='border w-[700px] py-8 bg-white rounded-lg shadow-2xl  justify-center items-center flex-col'>
+      <div className='border w-[700px] p-8 bg-white rounded-lg shadow-2xl  justify-center items-center flex-col'>
         {/* Title */}
         <div className='w-52 mx-auto border-black'>
           <h1 className='text-3xl font-bold text-[#7d40ff]'>Sign Up Page</h1>
@@ -127,8 +133,10 @@ const Signup = () => {
           </div>
 
           <div className='flex place-content-around mt-8'>
+            
+            {/* Phone Number */}
             <div className='flex flex-col'>
-              {/* Phone Number */}
+              
               <label htmlFor="phonenumber" className='mx-auto text-gray-700 font-semibold'>Phone Number</label>
               <input 
                 type='tel'
@@ -145,8 +153,29 @@ const Signup = () => {
               )}
             </div>
 
+            <div className='flex flex-col '>
+            <label className='text-gray-700 font-semibold'>Role</label>
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              className='bg-gray-200 rounded-full mt-1 py-2 px-4 w-72'
+            >
+              <option value="" disabled>-- Select Role --</option>
+              <option value="admin">Admin</option>
+              <option value="operator">Operator</option>
+              <option value="supervisor">Supervisor</option>
+            </select>
+            {errors.role && (
+              <p className="text-red-500 text-sm mt-1">{errors.role}</p>
+            )}
+          </div>
+          </div>
+
+          <div className='flex place-content-around mt-8'>
+           
+            {/* Password */}
             <div className='flex flex-col'>
-              {/* Password */}
+              
               <label htmlFor="password" className='mx-auto text-gray-700 font-semibold'>Password</label>
               <div className="relative w-72">
                 <input 
@@ -170,11 +199,8 @@ const Signup = () => {
                 <p className="text-red-500 text-sm mt-1">{errors.password}</p>
               )}
             </div>
-          </div>
-
-          <div className='flex place-content-around mt-8'>
+              {/* Confirm Password */}           
             <div className='flex flex-col'>
-              {/* Confirm Password */}
               <label htmlFor="confirmPassword" className='mx-auto text-gray-700 font-semibold'>Confirm Password</label>
               <div className="relative w-72">
                 <input 

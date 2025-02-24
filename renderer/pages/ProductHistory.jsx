@@ -1,4 +1,5 @@
 
+
 import Link from 'next/link'; // Use Next.js Link for routing
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
@@ -10,17 +11,32 @@ const ProductHistory = () => {
     const [mfgYear, setMfgYear] = useState('');
     const [production, setProduction] = useState('');
     const [mgfBy, setMgfBy] = useState('');
-    const [owner, setSelectInsert] = useState('');
+    const [owner, setOwner] = useState('');
+    const [machineNumber, setMachineNumber] = useState('');
     const [errors, setErrors] = useState({});
     const [successMessage, setSuccessMessage] = useState('');
-        const [errorMessage, setErrorMessage] = useState(""); // State to store error message
+    const [productData, setProductData] = useState('');
+    const [errorMessage, setErrorMessage] = useState(""); // State to store error message
+    const [machines, setMachines] = useState([]);
     
     const router = useRouter();
     const product_id = router.query?.product_id; // Access the query parameter
     // const { product_id } = router.query;
     console.log("Productttt ID:", product_id); // Debugging line
 
-
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const response = await axios.get('http://localhost:4000/machine/all');
+                setMachines(response.data);
+                console.log(response.data,"Data"); // Log the data fetched
+            } catch (err) {
+                console.error('Error fetching data:', err);
+                setError('Failed to load customer data. Please try again later.');
+            } 
+        };
+        fetchData();
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -47,6 +63,11 @@ const ProductHistory = () => {
             newErrors.owner = 'Select Owner.';
         }
 
+        if ( !machineNumber.trim()) {
+            isValid = false;
+            newErrors.machineNumber = 'Select Machine Number.';
+        }
+
         if (isValid) {
             setErrors({});
             setSuccessMessage('Form submitted successfully!');
@@ -55,13 +76,14 @@ const ProductHistory = () => {
                 mfg_year: mfgYear,
                 mfg_by: mgfBy,
                 ownership: owner,
-                
+                scheduled_machine_number : machineNumber,
                 production_history : production,
 
             };
             try {
-                const response = await axios.post('https://machanite-be.onrender.com/productHistory/create',formData); 
+                const response = await axios.post('http://localhost:4000/productHistory/create',formData); 
                 setSuccessMessage('Form submitted successfully!');
+                console.log(formData,"hist");
                 router.push({
                     pathname: '/ViewProduct', // Page to navigate to
                     query: { product_id : product_id }, // Parameters to pass
@@ -123,7 +145,7 @@ const ProductHistory = () => {
                                 )}
                             </div>
 
-                            <div className="flex flex-col order border-black mt-7">
+                            <div className="flex flex-col order border-black mt-5">
                                 <label htmlFor="mgfBy" className="text-gray-800 ml-1 font-semibold">
                                     MFG By
                                 </label>
@@ -161,7 +183,7 @@ const ProductHistory = () => {
                                         name="owner"
                                         id="owner"
                                         value={owner}
-                                        onChange={(e) => setSelectInsert(e.target.value)}
+                                        onChange={(e) => setOwner(e.target.value)}
                                         className="bg-gray-200 focus:outline-none  border border-gray-400 rounded-full mt-1 py-2 px-4 w-72"
                                     >
                                         <option value="" disabled selected>
@@ -182,7 +204,38 @@ const ProductHistory = () => {
                                     )}
                                 </div>
 
-                            <div className="flex flex-col order border-black mt-7">
+                                <div className="flex flex-col order border-black mt-5">
+    <label htmlFor="machineNumber" className="text-gray-800 ml-1 font-semibold">
+        Machine Number
+    </label>
+    <select
+        name="machineNumber"
+        id="machineNumber"
+        value={machineNumber}
+        onChange={(e) => setMachineNumber(e.target.value)}
+        className="bg-gray-200 focus:outline-none border border-gray-400 rounded-full mt-1 py-2 px-4 w-72"
+    >
+        <option value="" disabled>
+            -- Select Machine Number --
+        </option>
+        {machines.length > 0 ? (
+            machines.map((machine) => (
+                <option key={machine.id} value={machine.id}>
+                    {machine.machine_name}
+                </option>
+            ))
+        ) : (
+            <option disabled>No Machines Available</option>
+        )}
+    </select>
+    {errors.machineNumber && (
+        <p className="text-red-500 text-sm mt-1">{errors.machineNumber}</p>
+    )}
+</div>
+
+
+
+                            <div className="flex flex-col order border-black mt-5">
                                 <label htmlFor="production" className="text-gray-800 ml-1 font-semibold">
                                     Production Till Now
                                 </label>
@@ -198,8 +251,7 @@ const ProductHistory = () => {
                                 )}
                             </div>
 
-     {/* PRODUCT ID */}
-    {/* <p>{product_id ? `Product ID: ${product_id}` : 'No Product ID Found'}</p> */}
+     
                             <div className="flex justify-center mb-2 mt-7">
                                 <button onClick={handleSubmit} className="bg-[#7d40ff] rounded-full w-52 px-4 py-2 my-auto text-white mt-5">
                                     Submit

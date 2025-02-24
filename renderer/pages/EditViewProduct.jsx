@@ -5,9 +5,12 @@ import Dashboard from './Dashboard';
 import Header from './Header';
 import { useRouter } from 'next/router';
 import Papa from 'papaparse';
+import { FaRegEdit } from "react-icons/fa";
+import { GrEdit } from "react-icons/gr";
 
 
-const ViewProduct = () => {
+
+const EditViewProduct = () => {
     const [images, setImages] = useState([]);
     const [imageOne, setImageOne] = useState([]);
     const [productData, setProductData] = useState("");
@@ -49,11 +52,22 @@ const ViewProduct = () => {
     const [showModal, setShowModal] = useState(false);
     const [refreshData, setRefreshData] = useState(false); // State for re-fetching
     const [isEditing, setIsEditing] = useState(false);
+    const [rawMaterials, setRawMaterials] = useState([]);
+    const [editIndex, setEditIndex] = useState(null);
+    const [selectedMaterial, setSelectedMaterial] = useState({});
+    const [materialOptions, setMaterialOptions] = useState([]); // State for API data
+    const [savedMaterials, setSavedMaterials] = useState(
+        rawMaterials.reduce((acc, material, index) => {
+            acc[index] = material.material_name;
+            return acc;
+        }, {})
+    );
 
 
     const router = useRouter();
     // const product_id = router.query?.product_id; // Access the query parameter a1afa2db-7c45-44c0-b373-ebeec88a3659
-    const { product_id } = router.query;
+    // const  product_id  =  '8bff7ffa-9546-4bb3-b8f2-21c6810a95c6';
+    const { product_id } = router.query ;
     const [showList, setShowList] = useState(false);
     // Check if check_points array exists
   const pdfLinks = productData.files_key?.check_points || [];
@@ -80,6 +94,7 @@ const ViewProduct = () => {
                      setUrlCheckPoints([]);  // Handle undefined case
                  }
 
+                 setRawMaterials(data.rawMaterial || []);
                 setComponentDescription(productData.component_description)
                 setStatus(productData.status)
                 setHsm(productData.hsm_code)
@@ -117,7 +132,7 @@ const ViewProduct = () => {
                 // Split `check_points` into an array
                 if (data.check_points) {
                     setCheckPoints(data.check_points.split(','));
-                } console.log("PDF URL:", productData.files_key?.check_points,"h");
+                } 
                                             
 
             } catch (error) {
@@ -134,6 +149,10 @@ const ViewProduct = () => {
         fetchData();
     }, [product_id, refreshData]);
 
+// Handles dropdown selection change
+// const handleSelectChange = (index, value) => {
+//     setSelectedMaterial((prev) => ({ ...prev, [index]: value }));
+// };
 
   const handleFileChange = (e) => {
     const newFile = e.target.files[0]; // Get the first file from input
@@ -219,6 +238,112 @@ const handleSave = async () => {
       alert("Failed to update product details. Please try again.");
   }
 };
+
+// Function to fetch material data from API
+const fetchMaterials = async () => {
+    try {
+        const response = await fetch("http://localhost:4000/raw-material/all");
+        const data = await response.json();
+
+        console.log("Full API Response:", data); // Debugging API response
+
+        if (data && typeof data === "object" && Array.isArray(data.material)) {
+            setMaterialOptions(data.material); // Only store "material" type
+            console.log("Filtered Material Options:", data.material);
+        } else {
+            console.error("Unexpected API response format:", data);
+        }
+    } catch (error) {
+        console.error("Error fetching materials:", error);
+    }
+};
+
+
+// Handle edit button click
+const handleEditClick = (index) => {
+    if (editIndex === index) {
+        // Cancel edit mode
+        setEditIndex(null);
+        setSelectedMaterial({});
+    } else {
+        setEditIndex(index);
+    }
+    fetchMaterials(); // Fetch API data when edit is clicked
+};
+
+// Handle dropdown change
+const handleSelectChange = (index, value) => {
+    setSelectedMaterial((prev) => ({ ...prev, [index]: value }));
+};
+
+ // Handle save functionality
+ const handleSaveMaterial = async () => {
+    if (editIndex === null) return;
+
+    // Get old and new material IDs
+    const oldRawMaterialId = rawMaterials[editIndex]?.id; // Existing material ID
+    const newRawMaterialName = selectedMaterial[editIndex]; // Selected new material name
+
+    if (!oldRawMaterialId || !newRawMaterialName) {
+        console.error("❌ Error: Missing required fields!", { oldRawMaterialId, newRawMaterialName });
+        alert("Please select a valid material before saving.");
+        return;
+    }
+
+    // Find the new material ID from the materialOptions list
+    const newRawMaterial = materialOptions.find(
+        (material) => material.material_name === newRawMaterialName
+    );
+
+    if (!newRawMaterial) {
+        console.error("❌ Error: Selected material not found in options!", { newRawMaterialName });
+        alert("Selected material is invalid. Please try again.");
+        return;
+    }
+
+    const newRawMaterialId = newRawMaterial.id; // Get new material ID
+
+    // Construct the payload
+    const updatedMaterial = {
+        product_id: product_id,  // Ensure this is not undefined
+        oldRawMaterialId: oldRawMaterialId,
+        newRawMaterialId: newRawMaterialId,
+    };
+
+    console.log("🚀 Sending API request with payload:", updatedMaterial);
+            
+    try {
+        const response = await axios.put(
+            "http://localhost:4000/api/replace-raw-material",
+            updatedMaterial,
+            {
+                headers: { "Content-Type": "application/json" },
+            }
+        );
+
+        if (response.status === 200) {
+            console.log("✅ Material updated successfully:", response.data);
+            alert("Material updated successfully!");
+
+            // Refresh raw materials list after update
+            setRefreshData((prev) => !prev);
+
+            // Reset edit state
+            setEditIndex(null);
+            setSelectedMaterial({});
+        } else {
+            console.error("❌ Unexpected API response:", response);
+            alert("Failed to update material. Please try again.");
+        }
+    } catch (error) {
+        console.error("❌ API Error:", error.response?.data || error.message);
+        alert("Error updating material. Please check the console for details.");
+    }
+};
+
+
+
+
     return (
         <div className="flex">
             {/* Dashboard  */}
@@ -420,12 +545,6 @@ const handleSave = async () => {
                                 )}    
                             </div>   
                             </div>
-                            
-                            {/* <p className='w-80 mr-10 '><strong className='text-gray-800 font-bold'>Maintance :</strong> {productData.maintenance || 'No Description Available'}</p> */}
-                            {/* <p className='w-80 mr-10'
-                                ><strong className='text-gray-800 font-bold mr-1 '>Process Plan Number :</strong> 
-                                {productData.process_plan_no || 'N/A'}  <br />
-                            </p> */}
                         </div>    
                     
                          {/* Control Plan Number and Number Of Cavities */}
@@ -471,120 +590,181 @@ const handleSave = async () => {
                                     disabled={!isEditing} 
                                 />
                             </div>
-                            {/* <p className='w-80 mr-10 '>
-                                <strong className='mr-1  text-gray-800 font-bold'>Control Plan Number :</strong>  
-                                {productData.control_plan_no || 'No Description Available'} <br />
-                            </p>
-                            <p className='w-80 mr-10'><strong className='text-gray-800 font-bold'>Number Of Cavities :</strong> {productData.no_of_cavities || 'N/A'}</p> */}
-                        </div>    
+                            </div>    
                     
                          {/* Net Weight and Runner Weight */}
                         <div className="flex mt-8 ml-16">
-        <div className="w-80 mr-10">
-            <label className="text-gray-800 font-bold">Net Weight (Component) :</label>
-            <input 
-                type="text" 
-                name="hsm_code" 
-                value={productData.net_weight_component  || ""} 
-                onChange={handleInputChange} 
-                className="border p-2 border-gray-400 mt-2 w-full" 
-                disabled={!isEditing} 
-            />
-        </div>
-        <div className="w-80 mr-10">
-            <label className="text-gray-800 font-bold">Runner Weight Per Shot :</label>
-            <input 
-                type="text" 
-                name="mhc_no" 
-                value={productData.runner_weight_per_shot || ""} 
-                onChange={handleInputChange} 
-                className="border p-2 border-gray-400 mt-2 w-full" 
-                disabled={!isEditing} 
-            />
-        </div>
-    </div>  
+                            <div className="w-80 mr-10">
+                                <label className="text-gray-800 font-bold">Net Weight (Component) :</label>
+                                <input 
+                                    type="text" 
+                                    name="hsm_code" 
+                                    value={productData.net_weight_component  || ""} 
+                                    onChange={handleInputChange} 
+                                    className="border p-2 border-gray-400 mt-2 w-full" 
+                                    disabled={!isEditing} 
+                                />
+                            </div>
+                            <div className="w-80 mr-10">
+                                <label className="text-gray-800 font-bold">Runner Weight Per Shot :</label>
+                                <input 
+                                    type="text" 
+                                    name="mhc_no" 
+                                    value={productData.runner_weight_per_shot || ""} 
+                                    onChange={handleInputChange} 
+                                    className="border p-2 border-gray-400 mt-2 w-full" 
+                                    disabled={!isEditing} 
+                                />
+                            </div>
+                        </div>  
                     
                          {/* Raw Material and Shot Weight */}   
                         <div className="flex mt-8 ml-16">
-        <div className="w-80 mr-10">
-            <label className="text-gray-800 font-bold">Raw Material Required Per Piece <br />(Counting No)  :</label>
-            <input 
-                type="text" 
-                name="hsm_code" 
-                value={productData.counting_no  || ""} 
-                onChange={handleInputChange} 
-                className="border p-2 border-gray-400 mt-2 w-full" 
-                disabled={!isEditing} 
-            />
-        </div>
-        <div className="w-80 mr-10">
-            <label className="text-gray-800 font-bold">Shot Weight (Counting Weight) :</label>
-            <input 
-                type="text" 
-                name="mhc_no" 
-                value={productData.counting_weight || ""} 
-                onChange={handleInputChange} 
-                className="border p-2 border-gray-400 mt-2 w-full" 
-                disabled={!isEditing} 
-            />
-        </div>
-    </div>
+                            <div className="w-80 mr-10">
+                                <label className="text-gray-800 font-bold">Raw Material Required Per Piece <br />(Counting No)  :</label>
+                                <input 
+                                    type="text" 
+                                    name="hsm_code" 
+                                    value={productData.counting_no  || ""} 
+                                    onChange={handleInputChange} 
+                                    className="border p-2 border-gray-400 mt-2 w-full" 
+                                    disabled={!isEditing} 
+                                />
+                            </div>
+                            <div className="w-80 mr-10 flex flex-col justify-end">
+                                <label className="text-gray-800 font-bold">Shot Weight (Counting Weight) :</label>
+                                <input 
+                                    type="text" 
+                                    name="mhc_no" 
+                                    value={productData.counting_weight || ""} 
+                                    onChange={handleInputChange} 
+                                    className="border p-2 border-gray-400 mt-2 w-full" 
+                                    disabled={!isEditing} 
+                                />
+                            </div>
+                        </div>
                     
                          {/* Cycle Time and Efficiency */}                           
                         <div className="flex mt-8 ml-16">
-        <div className="w-80 mr-10">
-            <label className="text-gray-800 font-bold">Cycle Time (Seconds)  :</label>
-            <input 
-                type="text" 
-                name="hsm_code" 
-                value={productData.cycle_time  || ""} 
-                onChange={handleInputChange} 
-                className="border p-2 border-gray-400 mt-2 w-full" 
-                disabled={!isEditing} 
-            />
-        </div>
-        <div className="w-80 mr-10">
-            <label className="text-gray-800 font-bold">Efficiency (%) :</label>
-            <input 
-                type="text" 
-                name="mhc_no" 
-                value={productData.efficiency || ""} 
-                onChange={handleInputChange} 
-                className="border p-2 border-gray-400 mt-2 w-full" 
-                disabled={!isEditing} 
-            />
-        </div>
-    </div>
+                            <div className="w-80 mr-10">
+                                <label className="text-gray-800 font-bold">Cycle Time (Seconds)  :</label>
+                                <input 
+                                    type="text" 
+                                    name="hsm_code" 
+                                    value={productData.cycle_time  || ""} 
+                                    onChange={handleInputChange} 
+                                    className="border p-2 border-gray-400 mt-2 w-full" 
+                                    disabled={!isEditing} 
+                                />
+                            </div>
+                            <div className="w-80 mr-10">
+                                <label className="text-gray-800 font-bold">Efficiency (%) :</label>
+                                <input 
+                                    type="text" 
+                                    name="mhc_no" 
+                                    value={productData.efficiency || ""} 
+                                    onChange={handleInputChange} 
+                                    className="border p-2 border-gray-400 mt-2 w-full" 
+                                    disabled={!isEditing} 
+                                />
+                            </div>
+                        </div>
                         
                     
                          {/* Shift and Net Weight */}   
                         <div className="flex mt-8 ml-16">
-        <div className="w-80 mr-10">
-            <label className="text-gray-800 font-bold">Production Per Shift  :</label>
-            <input 
-                type="text" 
-                name="hsm_code" 
-                value={productData.production_per_shift  || ""} 
-                onChange={handleInputChange} 
-                className="border p-2 border-gray-400 mt-2 w-full" 
-                disabled={!isEditing} 
-            />
-        </div>
-        <div className="w-80 mr-10">
-            <label className="text-gray-800 font-bold">Net Weight (Runner Per Piece) :</label>
-            <input 
-                type="text" 
-                name="mhc_no" 
-                value={productData.net_weight_runner_per_piece || ""} 
-                onChange={handleInputChange} 
-                className="border p-2 border-gray-400 mt-2 w-full" 
-                disabled={!isEditing} 
-            />
-        </div>
-    </div>
-                    
+                            <div className="w-80 mr-10">
+                                <label className="text-gray-800 font-bold">Production Per Shift  :</label>
+                                <input 
+                                    type="text" 
+                                    name="hsm_code" 
+                                    value={productData.production_per_shift  || ""} 
+                                    onChange={handleInputChange} 
+                                    className="border p-2 border-gray-400 mt-2 w-full" 
+                                    disabled={!isEditing} 
+                                />
+                            </div>
+                            <div className="w-80 mr-10">
+                                <label className="text-gray-800 font-bold">Net Weight (Runner Per Piece) :</label>
+                                <input 
+                                    type="text" 
+                                    name="mhc_no" 
+                                    value={productData.net_weight_runner_per_piece || ""} 
+                                    onChange={handleInputChange} 
+                                    className="border p-2 border-gray-400 mt-2 w-full" 
+                                    disabled={!isEditing} 
+                                />
+                            </div>
+                        </div>
+
+                         {/* Raw Material */}   
+                         <h2 className="text-gray-800 font-bold mt-8">Raw Materials :</h2>
+            <div className="overflow-x-auto mt-1 border rounded-lg shadow-lg">
+                <table className="min-w-[500px] border border-gray-300">
+                    <thead>
+                        <tr className="bg-gray-200">
+                            <th className="border px-4 py-2">#</th>
+                            <th className="border px-4 py-2">Material Name</th>
+                            <th className="border px-4 py-2">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {rawMaterials.map((material, index) => (
+                            <tr key={material.id} className="hover:bg-gray-100">
+                                <td className="border px-4 py-2 text-center">{index + 1}</td>
+                                <td className="border px-4 py-2 text-center">
+                                    {editIndex === index ? (
+                                       <select
+                                       className="border border-gray-300 rounded p-1"
+                                       value={selectedMaterial[index] ?? material.material_name}
+                                       onChange={(e) => handleSelectChange(index, e.target.value)}
+                                   >
+                                       <option value="" disabled>Select Material</option>
+                                       {materialOptions.length > 0 ? (
+                                           materialOptions.map((option) => (
+                                               <option key={option.id} value={option.material_name}>
+                                                   {option.material_name}
+                                               </option>
+                                           ))
+                                       ) : (
+                                           <option disabled>Loading...</option>
+                                       )}
+                                   </select>
+                                   
+                                    ) : (
+                                        material.material_name
+                                    )}
+                                </td>
+                                <td className="border text-center">
+                                    <button
+                                        onClick={() => handleEditClick(index)}
+                                        className={`w-20 py-1 text-white rounded-lg text-sm block mx-auto my-2 ${
+                                            editIndex === index ? "bg-red-500" : "bg-slate-500"
+                                        }`}
+                                        aria-label={editIndex === index ? "Cancel Edit" : "Edit Material"}
+                                    >
+                                        {editIndex === index ? "Cancel" : "Edit"}
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+            {/* Save Button - Appears Only When Editing */}
+            {editIndex !== null && (
+                <div className="mt-4 flex justify-center">
+                    <button
+                        onClick={handleSaveMaterial}
+                        className="bg-green-500 text-white px-6 py-1 rounded-lg shadow-md hover:bg-green-600 transition"
+                    >
+                        Save
+                    </button>
+                </div>
+            )}
+
                          {/* Check Points*/}
-                        <div className='flex  mt-8  w-full ml-[125px] '>
+                        <div className='flex  mt-8  w-full ml-[85px] '>
                             <p className=' flex'>
                                 <strong className='mr-1'>Check Points :</strong> 
                                 {/* {productData.check_points || 'No Description Available'} */}
@@ -650,7 +830,58 @@ const handleSave = async () => {
                                 
 
                                     {/* upload PDF  */}
-                                
+                                <div className='mr-10'>
+
+                                    {/* Custom file input button */}
+                                    <div className=" border w-[100px]">
+                                        <input
+                                            type="file"
+                                            name="uploadCheckPoint"
+                                            id="uploadCheckPoint"
+                                            onChange={handleFileChange}
+                                            accept='application/pdf'
+                                            multiple
+                                            className="hidden"
+                                        />
+                                        <label
+                                            htmlFor="uploadCheckPoint"
+                                            className="bg-[#926be6] text-white py-0.5 px-2 cursor-pointer rounded-md"
+                                        >
+                                            Choose File
+                                        </label>
+                                    </div>
+                                   
+                                    
+
+                                    <ul className="mt-1">
+                                        {uploadCheckPoints.length > 0 ? (
+                                        uploadCheckPoints.map((file, index) => (
+                                            <li key={index} className="flex items-center justify-between text-gray-700">
+                                            <span>{file.name}</span>
+                                            <button
+                                                onClick={() => handleDelete(file)}
+                                                className="ml-4 text-red-500 hover:text-red-700"
+                                                aria-label={`Delete ${file.name}`}
+                                            >
+                                                × {/* Cross symbol */}
+                                            </button>
+                                            </li>
+                                        ))
+                                        ) : (
+                                        <li className="text-gray-500">No files selected</li>
+                                        )}
+                                    </ul>
+
+                                    {/* Show Upload button after files are selected */}
+                                    {uploadCheckPoints.length > 0 && (
+                                        <button
+                                        onClick={handleUpload}
+                                        className="mt-2 bg-[#926be6] text-white py-0.5 px-4 rounded-md hover:bg-blue-600"
+                                        >
+                                        Upload
+                                        </button>
+                                    )}     
+                                </div>
                             </p>
                             
                         </div>    
@@ -803,7 +1034,7 @@ const handleSave = async () => {
 
 
                         {/* Edit & Save Button - Conditional Rendering */}
-                        {/* <div className="mt-10">
+                        <div className="mt-10">
                             {!isEditing ? (
                                 <button 
                                     className="bg-[#926be6] p-1.5 px-2 w-24 text-white rounded-lg"
@@ -820,7 +1051,7 @@ const handleSave = async () => {
                                     Save
                                 </button>
                             )}
-                        </div> */}
+                        </div>
                          
                         
                     </div>
@@ -831,4 +1062,4 @@ const handleSave = async () => {
 
 };
 
-export default ViewProduct;
+export default EditViewProduct;

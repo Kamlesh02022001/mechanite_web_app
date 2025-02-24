@@ -14,7 +14,7 @@ const CustomerList = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const response = await axios.get('https://machanite-be.onrender.com/customer/all');
+                const response = await axios.get('http://localhost:4000/customer/all');
                 setProductData(response.data);
                 console.log(response.data); // Log the data fetched
             } catch (err) {

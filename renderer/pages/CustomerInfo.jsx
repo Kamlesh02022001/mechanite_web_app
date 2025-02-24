@@ -211,7 +211,7 @@ const CustomerInfo = () => {
           console.log("Sending data to API:", formData);
           try {
             const response = await axios.put(
-                `https://machanite-be.onrender.com/customer/update/${id}`,
+                `http://localhost:4000/customer/update/${id}`,
                 formData,
                 {
                     headers: {
@@ -246,8 +246,8 @@ const CustomerInfo = () => {
         useEffect(() => {
             const fetchData = async () => {
                 try {
-                 // const response = await axios.get('https://machanite-be.onrender.com/customer/${id}');
-                    const response = await axios.get(`https://machanite-be.onrender.com/customer/${id}`);
+                 // const response = await axios.get('http://localhost:4000/customer/${id}');
+                    const response = await axios.get(`http://localhost:4000/customer/${id}`);
 
                     setProductData(response.data);
                     console.log(response.data); // Log the data fetched
@@ -696,7 +696,7 @@ export default CustomerInfo;
 //         useEffect(() => {
 //         const fetchData = async () => {
 //             try {
-//               const response = await fetch('https://machanite-be.onrender.com/customer/all');
+//               const response = await fetch('http://localhost:4000/customer/all');
 //               if (!response.ok) {
 //                 throw new Error('Failed to fetch data');
 //               }

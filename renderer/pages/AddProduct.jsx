@@ -269,7 +269,7 @@ const [customerId, setCustomerId] = useState("");
 
         
         const response = await axios.post(
-          "https://machanite-be.onrender.com/api/create-product",
+          "http://localhost:4000/api/create-product",
           
           formData,
           {
@@ -333,7 +333,7 @@ const [customerId, setCustomerId] = useState("");
     try {
       setLoading(true);
       const response = await axios.get(
-        "https://machanite-be.onrender.com/customer/all"
+        "http://localhost:4000/customer/all"
       );
       console.log("API Response:", response.data); // Debug: log the API response
       const customersData = response.data;
@@ -370,7 +370,7 @@ const [customerId, setCustomerId] = useState("");
     try {
       setFetchingShortName(true);
       const response = await axios.get(
-        `https://machanite-be.onrender.com/customer/${customerId}`
+        `http://localhost:4000/customer/${customerId}`
       );    
       
       if (response.data && response.data.customer_short_name) {
@@ -415,7 +415,7 @@ const [customerId, setCustomerId] = useState("");
     try {
       setFetchingMoldNumbers(true);
       const response = await axios.get(
-        `https://machanite-be.onrender.com/api/next-mold-number/${customerId}`
+        `http://localhost:4000/api/next-mold-number/${customerId}`
       );
 
       console.log("API Response:", response.data);

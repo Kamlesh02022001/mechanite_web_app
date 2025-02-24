@@ -4,7 +4,7 @@ import Dashboard from './Dashboard';
 import Header from './Header';
 import axios from 'axios';
 
-const VendorList = () => {
+const SalesList = () => {
     const [productData, setProductData] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -14,7 +14,7 @@ const VendorList = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const response = await axios.get('http://localhost:4000/vendor/all');
+                const response = await axios.get('http://localhost:4000/sales-order/all');
                 setProductData(response.data);
                 console.log(response.data); // Log the data fetched
             } catch (err) {
@@ -29,10 +29,10 @@ const VendorList = () => {
 
     const handleMoreClick = (id) => {
         router.push({
-            pathname: '/VendorInfo',
+            pathname: '/ViewSalesOrder',
             query: {  id },
         });
-         
+         console.log(id);
        
     };
 
@@ -51,7 +51,7 @@ const VendorList = () => {
 
                     {/* Main Content Area */}
                     <div className="flex items-center flex-col px-5 pb-10">
-                        <h1 className="text-4xl font-bold text-[#7d40ff] mt-5">Vendor List</h1>
+                        <h1 className="text-4xl font-bold text-[#7d40ff] mt-5">Sales Order List</h1>
 
                         {/* Loading or Error */}
                         {isLoading ? (
@@ -61,7 +61,7 @@ const VendorList = () => {
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-14 mt-7">
                                 {/* Map through customer data */}
-                                {productData.map((vendor, index) => (
+                                {productData.map((customer, index) => (
                                     <div
                                         key={index}
                                         className="flex flex-col px-5 pb-8 pt-10 shadow-2xl rounded-2xl bg-[#ffffffe2] w-[400px] h-auto"
@@ -69,18 +69,18 @@ const VendorList = () => {
                                         <div className="flex flex-col gap-3">
                                             <p>
                                                 <strong className="text-gray-800 font-bold">Name:</strong>{' '}
-                                                {vendor.vendor_name || 'No Description Available'}
+                                                {customer.customer?.customer_name || 'No Description Available'}
                                             </p>
                                             <p>
-                                                <strong className="text-gray-800 font-bold">Email:</strong>{' '}
-                                                {vendor.email || 'No Description Available'}
+                                                <strong className="text-gray-800 font-bold">Sales Order Number:</strong>{' '}
+                                                {customer.purchase_order_no || 'No Description Available'}
                                             </p>
                                             
                                         </div>
 
                                         <div className="mt-7 flex justify-center">
                                             <button
-                                                onClick={() => handleMoreClick(vendor.id)}
+                                                onClick={() => handleMoreClick(customer.id)}
                                                 className="font-semibold text-white bg-[#7d40ff] rounded-2xl px-5 py-1"
                                             >
                                                 More
@@ -97,4 +97,4 @@ const VendorList = () => {
     );
 };
 
-export default VendorList;
+export default SalesList;

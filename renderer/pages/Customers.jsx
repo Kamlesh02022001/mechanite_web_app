@@ -146,25 +146,17 @@ const Customers = () => {
           if (!designation.trim()) {
             isValid = false;
             newErrors.designation = "Designation is required.";
-          } else if (designation.trim().length < 3) {
-            isValid = false;
-            newErrors.designation = "Please enter a valid Designation.";
-          }
+          } 
+
           if (!purchaseManagerDesignation.trim()) {
             isValid = false;
             newErrors.purchaseManagerDesignation = "Designation is required.";
-          } else if (purchaseManagerDesignation.trim().length < 3) {
-            isValid = false;
-            newErrors.purchaseManagerDesignation = "Please enter a valid Designation.";
-          }
-
+          } 
+          
           if (!logisticDesignation.trim()) {
             isValid = false;
             newErrors.logisticDesignation = "Designation is required.";
-           }  else if (logisticDesignation.trim().length < 3) {
-            isValid = false;
-            newErrors.logisticDesignation = "Please enter a valid Designation.";
-          }
+           } 
 
           if (!logisticEmail.trim()) {
             isValid = false;
@@ -226,7 +218,7 @@ const Customers = () => {
           console.log("Sending data to API:", formData);
           try {
             const response = await axios.post(
-                'https://machanite-be.onrender.com/customer/create',
+                'http://localhost:4000/customer/create',
                 formData,
                 {
                     headers: {

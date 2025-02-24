@@ -27,7 +27,7 @@ const ViewProduct = () => {
         const fetchData = async () => {
             try {
 
-                const response = await axios.get(`https://machanite-be.onrender.com/api/get-product/${product_id}`);
+                const response = await axios.get(`http://localhost:4000/api/get-product/${product_id}`);
                 setProductData(response.data);
                 
                 
@@ -108,7 +108,7 @@ const fetchAndDisplayCsv = async (url) => {
 
     try {
         const response = await axios.put(
-            `https://machanite-be.onrender.com/api/upload-files/${product_id}`,
+            `http://localhost:4000/api/upload-files/${product_id}`,
             formData,
             {
                 headers: {
