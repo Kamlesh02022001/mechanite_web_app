@@ -1,7 +1,9 @@
-import React, { useState }  from 'react'
+import React, { useState, useEffect }  from 'react'
 import Dashboard from './Dashboard'
 import Header from './Header'
 import axios from 'axios';
+import { useRouter } from 'next/router';
+
 
 const Customers = () => {
         const [customer_short_name,setCustomer_short_name] = useState ('');
@@ -36,6 +38,19 @@ const Customers = () => {
          // Checkbox state
             const [sameAsAbove, setSameAsAbove] = useState(false);
             const [sameAsAboveManager, setSameAsAboveManager] = useState(false);
+            const router = useRouter();
+                 const [token, setToken] = useState('');
+                    
+                      useEffect(() => {
+                        const storedToken = sessionStorage.getItem('authToken');
+                        
+                        if (storedToken) {
+                            setToken(storedToken);
+                           
+                        } else {
+                            router.replace('/'); // Redirect to login if no token
+                        }
+                    }, []);
                 
         const handleSubmit = async (e) => {
           e.preventDefault(); // Prevents page refresh
@@ -218,13 +233,14 @@ const Customers = () => {
           console.log("Sending data to API:", formData);
           try {
             const response = await axios.post(
-                'http://localhost:4000/customer/create',
+                'https://machanite-be.onrender.com/customer/create',
                 formData,
                 {
                     headers: {
+                        Authorization: `Bearer ${token}`,
                         "Content-Type": "application/json",
                     },
-                }
+                }                
             );
             console.log("API Response:", response);
             if (response.status === 201) {

@@ -3,6 +3,7 @@ import Dashboard from './Dashboard';
 import Header from './Header';
 import axios from 'axios';
 import { TiVendorAndroid } from 'react-icons/ti';
+import { useRouter } from 'next/router';
 
 const CreateRawMaterial = () => {
     const [materialType, setMaterialType] = useState('');
@@ -15,11 +16,30 @@ const CreateRawMaterial = () => {
     const [apiError, setApiError] = useState('');
     const [quantity, setQuantity] = useState('');
 
+    const router = useRouter();
+      const [token, setToken] = useState('');
+    
+      useEffect(() => {
+        const storedToken = sessionStorage.getItem('authToken');
+        
+        if (storedToken) {
+            setToken(storedToken);
+           
+        } else {
+            router.replace('/'); // Redirect to login if no token
+        }
+    }, []);
+       console.log("token", token);
+    
+
     // Fetch vendors from API when component mounts
     useEffect(() => {
+        if(!token){return;}
         const fetchVendors = async () => {
             try {
-                const response = await axios.get('http://localhost:4000/vendor/all');
+                const response = await axios.get('https://machanite-be.onrender.com/vendor/all', {
+                    headers: { Authorization: `Bearer ${token}` }, // ✅ Include token in headers
+                });
                 setVendors(response.data); // Assuming response.data is an array of vendors
                 console.log(vendors)
             } catch (error) {
@@ -29,7 +49,7 @@ const CreateRawMaterial = () => {
         };
 
         fetchVendors();
-    }, []);
+    }, [token]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -60,7 +80,7 @@ const CreateRawMaterial = () => {
 
             try {
                 const response = await axios.post(
-                    'http://localhost:4000/raw-material/create',
+                    'https://machanite-be.onrender.com/raw-material/create',
                     {
                         material_type: materialType,
                         material_name: materialName,
@@ -69,6 +89,7 @@ const CreateRawMaterial = () => {
                     },
                     {
                         headers: {
+                            Authorization: `Bearer ${token}`,
                             'Content-Type': 'application/json',
                         },
                     }

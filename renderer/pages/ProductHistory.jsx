@@ -16,18 +16,36 @@ const ProductHistory = () => {
     const [errors, setErrors] = useState({});
     const [successMessage, setSuccessMessage] = useState('');
     const [productData, setProductData] = useState('');
+    const [error, setError] = useState('');
     const [errorMessage, setErrorMessage] = useState(""); // State to store error message
     const [machines, setMachines] = useState([]);
-    
     const router = useRouter();
-    const product_id = router.query?.product_id; // Access the query parameter
+    const product_id = router.query?.product_id || "NA"; // Access the query parameter
     // const { product_id } = router.query;
     console.log("Productttt ID:", product_id); // Debugging line
+    
+    
+    const [token, setToken] = useState('');
+        
+          useEffect(() => {
+            const storedToken = sessionStorage.getItem('authToken');
+            
+            if (storedToken) {
+                setToken(storedToken);
+               
+            } else {
+                router.replace('/'); // Redirect to login if no token
+            }
+        }, []);
+           console.log("token", token);
 
     useEffect(() => {
+        if(!token){return;}
         const fetchData = async () => {
             try {
-                const response = await axios.get('http://localhost:4000/machine/all');
+                const response = await axios.get('https://machanite-be.onrender.com/machine/all',{
+                    headers: { Authorization: `Bearer ${token}` }, // ✅ Include token in headers
+                });
                 setMachines(response.data);
                 console.log(response.data,"Data"); // Log the data fetched
             } catch (err) {
@@ -36,7 +54,7 @@ const ProductHistory = () => {
             } 
         };
         fetchData();
-    }, []);
+    }, [token]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -81,7 +99,13 @@ const ProductHistory = () => {
 
             };
             try {
-                const response = await axios.post('http://localhost:4000/productHistory/create',formData); 
+                const response = await axios.post('https://machanite-be.onrender.com/productHistory/create',formData,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                            'Content-Type': 'application/json',
+                        }
+                    }); 
                 setSuccessMessage('Form submitted successfully!');
                 console.log(formData,"hist");
                 router.push({

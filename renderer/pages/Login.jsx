@@ -42,19 +42,18 @@ const Login = () => {
         setIsLoading(true);
 
         try {
-            const response = await fetch('http://localhost:4000/login', {
+            const response = await fetch('https://machanite-be.onrender.com/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ phonenumber, password }),
             });
 
             const data = await response.json();
-
+            console.log("Token Num",data.token);
+            
             if (response.ok) {
-                setSuccessMessage('Login successful!');
-                setTimeout(() => {
-                    router.push('/Dashboard');
-                }, 2000);
+                sessionStorage.setItem('authToken', data.token); // Store token in sessionStorage
+                router.push('/AddProduct');
             } else {
                 setErrors({ apiError: data.message || 'Invalid credentials.' });
             }
@@ -140,7 +139,7 @@ const Login = () => {
                     <p>
                         Don't have an account?{' '}
                         <Link href='/Signup' className='text-[#6924ff]'>
-                            Register here
+                            Signup here
                         </Link>
                     </p>
                 </div>

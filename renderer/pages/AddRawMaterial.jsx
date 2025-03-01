@@ -24,10 +24,21 @@ const [insertQuantity, setInsertQuantity] = useState('');
 
     const router = useRouter();
     const product_id = router.query?.product_id ;
-
+    const [token, setToken] = useState('');
     const [materials, setMaterials] = useState([]);
     const [colors, setColors] = useState([]);
     const [inserts, setInserts] = useState([]);
+
+    useEffect(() => {
+        const storedToken = sessionStorage.getItem('authToken');
+        if (storedToken) {
+            setToken(storedToken);
+        } else {
+            router.replace('/'); // Redirect to login if no token
+        }
+    }, []);
+
+     
 
     const handleAddInsert = () => {
         if (!selectInsert || !insertQuantity.trim()) return;
@@ -52,20 +63,39 @@ const [insertQuantity, setInsertQuantity] = useState('');
     
 
     useEffect(() => {
+        if (!token) {
+            console.error("Authorization token is missing.");
+            return;
+        }
+    
         const fetchData = async () => {
             try {
-                const response = await axios.get('http://localhost:4000/raw-material/all');
+                const response = await axios.get('https://machanite-be.onrender.com/raw-material/all', {
+                    headers: { Authorization: `Bearer ${token}` }, // ✅ Include token in headers
+                });
+    
                 const data = response.data;
-                console.log(data);
+                console.log("Fetched Raw Materials:", data);
+                
                 setMaterials(data.material || []);
                 setColors(data.colour || []);
                 setInserts(data.insert || []);
             } catch (error) {
-                console.error('Error fetching data:', error);
+                console.error("Error fetching data:", error.response?.data || error.message);
+    
+                const errorMessage = error.response?.status === 401
+                    ? "Unauthorized: Please log in again."
+                    : error.response?.status === 403
+                    ? "Forbidden: Insufficient privileges."
+                    : "Failed to fetch raw materials. Please try again.";
+    
+                alert(errorMessage);
             }
         };
+    
         fetchData();
-    }, []);
+    }, [token]); // ✅ Only runs when `token` is available
+    
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -109,10 +139,16 @@ const [insertQuantity, setInsertQuantity] = useState('');
 
             try {
                 await axios.post(
-                    `http://localhost:4000/api/create-product-raw-material/${product_id}`,
-                    requestBody
+                    `https://machanite-be.onrender.com/api/create-product-raw-material/${product_id}`,
+                    requestBody,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                            'Content-Type': 'application/json',
+                        },
+                    }
                 );
-console.log(requestBody,"aaaa")
+        console.log(requestBody,"aaaa")
                 setErrors({});
                 setSuccessMessage('Form submitted successfully!');
                 router.push({

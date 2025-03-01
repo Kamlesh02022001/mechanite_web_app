@@ -16,7 +16,19 @@ const Machine = () => {
     const [errors, setErrors] = useState({});
     const [successMessage, setSuccessMessage] = useState('');
     const [errorMessage, setErrorMessage] = useState(""); // State to store error message
-    
+    const router = useRouter();
+    const [token, setToken] = useState('');
+            
+              useEffect(() => {
+                const storedToken = sessionStorage.getItem('authToken');
+                
+                if (storedToken) {
+                    setToken(storedToken);
+                   
+                } else {
+                    router.replace('/'); // Redirect to login if no token
+                }
+            }, []);
    
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -36,7 +48,9 @@ const Machine = () => {
                 machine_name : machine,
             };
             try {
-                const response = await axios.post('http://localhost:4000/machine/create',formData); 
+                const response = await axios.post('https://machanite-be.onrender.com/machine/create',formData,{
+                    headers: { Authorization: `Bearer ${token}` }, // ✅ Include token in headers
+                }); 
                 setSuccessMessage('Form submitted successfully!');
                 console.log(formData,"hist");
                 console.log(response.data);

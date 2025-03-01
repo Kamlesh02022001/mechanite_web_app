@@ -63,7 +63,7 @@ const Signup = () => {
 
     if (isValid) {
       try {
-        const response = await axios.post("http://localhost:4000/register", {
+        const response = await axios.post("https://machanite-be.onrender.com/register", {
           name,
           phonenumber,
           email,
@@ -249,9 +249,9 @@ const Signup = () => {
         </form>
       </div>
 
-      <Link href="/home">
+      {/* <Link href="/home">  39570034270 SBIN0005343
         <p className="mt-4 text-center">Go to home</p>
-      </Link>
+      </Link> */}
     </div>
   );
 };

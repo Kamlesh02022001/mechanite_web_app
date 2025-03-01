@@ -23,6 +23,21 @@ const StockDetails = () => {
         const { product_id } = router.query;
         console.log("Product ID:", product_id);
 
+    const [token, setToken] = useState('');
+    
+      useEffect(() => {
+        const storedToken = sessionStorage.getItem('authToken');
+        
+        if (storedToken) {
+            setToken(storedToken);
+           
+        } else {
+            router.replace('/'); // Redirect to login if no token
+        } 
+        console.log("token", token);
+    }, []);
+           
+
     // Fetch product data when stdPacking or bagSize changes
     useEffect(() => {
         const fetchProductData = async () => {
@@ -35,7 +50,9 @@ const StockDetails = () => {
             try {
                 setLoading(true);
                 const response = await axios.get(
-                    `http://localhost:4000/api/get-product/${product_id}`,
+                    `https://machanite-be.onrender.com/api/get-product/${product_id}`,{
+                        headers: { Authorization: `Bearer ${token}` }, 
+                    }
                 );
                 const productData = response.data;
                 console.log('API response:', productData);
@@ -52,14 +69,14 @@ const StockDetails = () => {
                     'Full error details:',
                     error.response?.data || error.message,
                 );
-                alert(`Failed to fetch product data. ${error.message}`);
+                // alert(`Failed to fetch product data. ${error.message}`);
             } finally {
                 setLoading(false);
             }
         };
 
         fetchProductData();
-    }, [stdPacking, bagSize, product_id]); // Dependencies
+    }, [stdPacking]); // Dependencies
 
 
     const handleSubmit = async (e) => {
@@ -125,7 +142,13 @@ const StockDetails = () => {
 
             try {
                 // Send the POST request
-                const response = await axios.post('http://localhost:4000/stockDetail/create', formData);
+                const response = await axios.post('https://machanite-be.onrender.com/stockDetail/create', formData,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                            'Content-Type': 'application/json',
+                        },
+                    });
 
                     setSuccessMessage("Data submitted successfully!");
                     setRow('');

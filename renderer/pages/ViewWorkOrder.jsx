@@ -1,18 +1,21 @@
-import Link from 'next/link';
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import Dashboard from './Dashboard';
-import Header from './Header';
-import { useRouter } from 'next/router';
+import Link from "next/link";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import Dashboard from "./Dashboard";
+import Header from "./Header";
+import { useRouter } from "next/router";
 
 const ViewWorkOrder = () => {
-    const [productData, setProductData] = useState("");
-    const [cycleTime, setCycleTime] = useState("");
-    const [efficiency, setEfficiency] = useState("");
-    const [cavities, setCavities] = useState("");
+    const [productData, setProductData] = useState({});
+    const [cycleTime, setCycleTime] = useState(0);
+    const [efficiency, setEfficiency] = useState(0);
+    const [cavities, setCavities] = useState(0);
     const [operators, setOperators] = useState([]);
-    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+    const [machines, setMachines] = useState([]);
+    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
     const [isEditing, setIsEditing] = useState(false);
+    const [token, setToken] = useState("");
+
     const [formData, setFormData] = useState({
         usedMachineNumber: "",
         finishedDate: "",
@@ -27,55 +30,109 @@ const ViewWorkOrder = () => {
         runnerKg: "",
         lumpsKg: "",
         efficiency: "",
-        remark: ""
+        remark: "",
     });
 
     const router = useRouter();
     const { id } = router.query;
-   
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const response = await axios.get(`http://localhost:4000/work-order/${id}`);
-                setProductData(response.data);
-                setCycleTime(productData.data?.product?.cycle_time || 0);
-                setEfficiency(productData.data?.product?.efficiency || 0);
-                setCavities(productData.data?.product?.no_of_cavities || 0);
-                console.log("efficiency", efficiency)
-                console.log("cycleTime", cycleTime)
-                console.log("cavities", cavities)
-                console.log("Work", response.data)
-            } catch (error) {
-                console.error('Error fetching data:', error);
-            }
-        };
-        if (id) fetchData();
-    }, [id]);
+    const createdAt = productData.data?.createdAt;
+    let maxDate = "";
+    
+    if (createdAt) {
+      const createdAtDate = new Date(createdAt);
+      createdAtDate.setDate(createdAtDate.getDate() + 15); // Add 15 days
+      maxDate = createdAtDate.toISOString().split("T")[0]; // Format as YYYY-MM-DD
+    }
 
+    // Retrieve token from session storage
     useEffect(() => {
-        const fetchUsers = async () => {
-            try {
-                const response = await axios.get(`http://localhost:4000/users/all`);
-                setOperators(response.data.operator || []);
-            } catch (error) {
-                console.error('Error fetching users:', error);
-            }
-        };
-        fetchUsers();
+        const storedToken = sessionStorage.getItem("authToken");
+        if (storedToken) {
+            setToken(storedToken);
+        } else {
+            router.replace("/"); // Redirect to login if no token
+        }
     }, []);
 
-    // Handle input change
+    // console.log("Token:", token);
+
+    // Fetch Work Order Data
+    useEffect(() => {
+        const fetchData = async () => {
+            if (!token || !id) return;
+
+            try {
+                const response = await axios.get(`https://machanite-be.onrender.com/work-order/${id}`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+
+                setProductData(response.data);
+                setCycleTime(productData.data?.product?.cycle_time || 10);
+                setEfficiency(productData.data?.product?.efficiency || 10);
+                setCavities(productData.data?.product?.no_of_cavities || 10);
+                
+                console.log("setCycleTime:", cycleTime);
+                console.log("setEfficiency", efficiency);
+                console.log("setCavities", cavities);
+                // console.log("Work Order Data:", response.data);
+                console.log("Work Order Data:", response.data);
+            } catch (error) {
+                console.error("Error fetching work order data:", error);
+            }
+        };
+
+        fetchData();
+    }, [id, token]);
+
+    // Fetch Operators
+    useEffect(() => {
+        const fetchUsers = async () => {
+            if (!token) return;
+
+            try {
+                const response = await axios.get("https://machanite-be.onrender.com/users/all", {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+
+                setOperators(response.data.operator || []);
+            } catch (error) {
+                console.error("Error fetching operators:", error);
+            }
+        };
+
+        fetchUsers();
+    }, [token]);
+
+    // Fetch Machines
+    useEffect(() => {
+        const fetchMachines = async () => {
+            if (!token) return;
+
+            try {
+                const response = await axios.get("https://machanite-be.onrender.com/machine/all", {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+
+                setMachines(response.data || []);
+                console.log("Machines Data:", response.data);
+            } catch (error) {
+                console.error("Error fetching machines:", error);
+            }
+        };
+
+        fetchMachines();
+    }, [token]);
+
+    // Handle Input Change
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
+    // Handle Form Submission
     const handleSubmit = async (e) => {
         e.preventDefault();
-    
-        console.log("Submitting Data...");
-        console.log("Work Order ID:", id);
-        console.log("Form Data:", formData); // Log entire formData
-    
+        console.log("Submitting Data...", formData);
+
         try {
             const payload = {
                 used_machine_no: formData.usedMachineNumber,
@@ -83,7 +140,7 @@ const ViewWorkOrder = () => {
                 date: formData.date,
                 shift: formData.shift,
                 operator_id: formData.operatorId,
-                standard_qty: Number(formData.standardQty),  // Ensure numbers
+                standard_qty: Number(formData.standardQty),
                 working_hours: Number(formData.workingHrs),
                 ok_qty: Number(formData.okQty),
                 rejected_qty: Number(formData.rejectedQty),
@@ -93,18 +150,23 @@ const ViewWorkOrder = () => {
                 efficiency: Number(formData.efficiency),
                 remarks: formData.remark,
             };
-    
-            console.log("Payload being sent:", payload); // Log payload before sending
-    
-            const response = await axios.put(`http://localhost:4000/work-order/edit-wo-opeerators/${id}`, payload);
-            // /work-order/edit-wo-opeerators
+
+            console.log("Payload being sent:", payload);
+
+            const response = await axios.put(
+                `https://machanite-be.onrender.com/work-order/edit-wo-operators/${id}`,
+                payload,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
             console.log("Response from server:", response);
             alert("Work order saved successfully!");
         } catch (error) {
-            console.error("Error saving data:", error.response ? error.response.data: error.message);
+            console.error("Error saving data:", error.response ? error.response.data : error.message);
         }
     };
-    
+
+    // Handle Reset Form
     const handleAddMore = () => {
         setFormData({
             usedMachineNumber: "",
@@ -120,39 +182,41 @@ const ViewWorkOrder = () => {
             runnerKg: "",
             lumpsKg: "",
             efficiency: "",
-            remark: ""
+            remark: "",
         });
     };
 
+    // Handle Report Navigation
     const handleReport = () => {
-        console.log(id,"Iiiiiddd");
         router.push({
-            pathname: '/ProductionTable', // Page to navigate to
-            query: { id: id }, // Parameters to pass
-          });
+            pathname: "/ProductionTable",
+            query: { id: id },
+        });
     };
 
-     // Calculate efficiency whenever related fields change
+    // Calculate Efficiency Whenever Related Fields Change
     useEffect(() => {
-        const workingSeconds = Number(formData.workingHrs) * 60 * 60; // Convert working hours to seconds 28800
+        const workingSeconds = Number(formData.workingHrs) * 60 * 60;
         console.log("Working Seconds:", workingSeconds);
 
-        if (workingSeconds > 0) {
+        if (workingSeconds > 0 && efficiency > 0 && cavities > 0) {
             const calculatedEfficiency =
-                ((Number(formData.okQty) * Number(cycleTime)) / workingSeconds) *
-                Number(efficiency) *
-                Number(cavities) *
-                100;
+                (Number(formData.okQty) * Number(cycleTime) * 100 * 100) /
+                (efficiency * cavities * workingSeconds);
 
             console.log("Calculated Efficiency:", calculatedEfficiency);
 
             setFormData((prevData) => ({
                 ...prevData,
-                efficiency: isNaN(calculatedEfficiency) ? "": calculatedEfficiency.toFixed(2), // Limit decimals
+                efficiency: isNaN(calculatedEfficiency) || !isFinite(calculatedEfficiency)
+                    ? ""
+                    : calculatedEfficiency.toFixed(2),
             }));
         }
     }, [formData.okQty, formData.workingHrs, cycleTime, efficiency, cavities]);
-
+   
+    
+   
     
     return (
         <div className="flex">
@@ -172,44 +236,26 @@ const ViewWorkOrder = () => {
                     </div>
 
                     {/* Main data  */}
-                    <div className="w-[800px] mx-auto flex flex-col  py-10 mt-8 px-8 bg-[#ffffffe2] shadow-2xl rounded-2xl">
+                    <div className="w-[800px] mx-auto flex flex-col  py-10 mt-8 px-8  bg-[#ffffffe2] shadow-2xl rounded-2xl">
                     
-                        <h1 className="flex justify-center text-2xl font-bold  text-[#7d40ff]">MES/WO/02/2025/001</h1>
+                        <h1 className="flex justify-center text-2xl font-bold  text-[#7d40ff]">{productData.data?.work_order_no}</h1>
                         {/* <h1 className="flex justify-center text-gray-800 font-bold mt-1"> Date: {new Date().toLocaleDateString('en-GB')}</h1> */}
                         <h1 className="flex justify-center text-gray-800 font-bold mt-1">
                             Date: {new Date(selectedDate).toLocaleDateString('en-GB')}
                         </h1>
 
-                        {/* Toggle between displaying date and input field */}
-                        {isEditing ? (
-                            <input
-                                type="date"
-                                value={selectedDate}
-                                onChange={(e) => setSelectedDate(e.target.value)}
-                                className="border border-gray-400 px-2 py-1 w-[200px] mx-auto rounded-md"
-                            />
-                        ): null}
-
-                        {/* Button to edit date */}
-                        <button
-                            onClick={() => setIsEditing(!isEditing)}
-                            className="bg-[#7d40ff] text-white px- w-[150px] text-sm mx-auto py-1.5 rounded-full mt-2"
-                        >
-                            {isEditing ? "Save Date": "Change Date"}
-                        </button>
                         <div className='border border-[#7d40ff] w-full mt-4'></div> 
 
-                           
 
                          {/* Component Description and Status */}
-                        <div className='flex  mt-6'>
+                        <div className='flex  mt-8'>
                             <p className='w-80 mr-10 ml-10 '><strong className='text-gray-800 font-bold'>Customer Name:</strong> {productData.data?.product?.customer?.customer_name || 'N/A'}</p>
                             <p className='w-80 mr-10 ml-10 '><strong className='text-gray-800 font-bold'>Item No:</strong> {productData.data?.product?.item_code || 'N/A'}</p>
                         </div>  
 
                         <div className='flex  mt-4  '>
                             <p className='w-80 mr-10 ml-10 '><strong className='text-gray-800 font-bold'>Part Name:</strong> {productData.data?.product?.component_description || 'N/A'}</p>
-                            <p className='w-80 mr-10 ml-10 '><strong className='text-gray-800 font-bold'>Scheduled Machine Number:</strong> {productData.data?.product?.product_histories?.scheduled_machine_number || 'N/A'}</p>
+                            <p className='w-80 mr-10 ml-10 '><strong className='text-gray-800 font-bold'>Scheduled Machine :</strong> {productData.data?.product?.product_histories?.scheduledMachine?.machine_name || 'N/A'}</p>
                             {/* <p className='w-80 mr-10 ml-10 '><strong className='text-gray-800 font-bold'>Raw Material Type:</strong> {productData.data?.workOrderRawMaterials?.material_type || 'N/A'}</p> */}
                         </div>
                          
@@ -219,7 +265,7 @@ const ViewWorkOrder = () => {
                         </div> 
 
                        {/* Table for Product */}
-                        <div className="overflow-x-auto overflow-y-auto rounded-lg shadow-lg border border-gray-300 mt-6 mx-10">
+                        <div className="overflow-x-auto overflow-y-auto rounded-lg shadow-lg border border-gray-300 mt-8 mx-10">
                             <table className="min-w-full border border-gray-300 shadow-lg bg-white">
                                 <thead>
                                     <tr className="bg-gray-200">
@@ -246,9 +292,9 @@ const ViewWorkOrder = () => {
                                 </tbody>
                             </table>
                         </div>
- 
+                        
                         {/* Table for Raw Material Details */}
-                        <div className="overflow-x-auto overflow-y-auto rounded-lg shadow-lg border border-gray-300 mt-6 mx-10">
+                        <div className="overflow-x-auto overflow-y-auto rounded-lg shadow-lg border border-gray-300 mt-10 mx-10">
                             <table className="min-w-full border border-gray-300 hadow-lg bg-white">
                                 <thead>
                                     <tr className="bg-gray-200">
@@ -276,7 +322,7 @@ const ViewWorkOrder = () => {
                                             <td className="border border-gray-300 px-4 py-1.5 text-center">{material.rawMaterial?.material_name || 'N/A'}</td>
                                             <td className="border border-gray-300 px-4 py-1.5 text-center">{material.rawMaterial?.quantity || 'N/A'}</td>
                                             <td className="border border-gray-300 px-4 py-1.5 text-center">
-                                                {material.required_quantity ? `${material.required_quantity} ${unit}`: 'N/A'}
+                                                {material.required_quantity ? `${Number(material.required_quantity).toFixed(2)} ${unit}` : 'N/A'}
                                             </td>
                                         </tr>
                                     );
@@ -287,21 +333,45 @@ const ViewWorkOrder = () => {
                         </div>
                         
                                            
-                        <div className='flex mt-6'>
+                        <div className='flex mt-10'>
                                 <div className='w-80 mr-10 ml-9 flex flex-col'>
-                                    <label htmlFor="usedMachineNumber" className='text-gray-800 ml-1 font-bold'>Used Machine Number:</label>
-                                    <input type="text" 
-                                           id="usedMachineNumber"
-                                           name="usedMachineNumber" 
-                                           placeholder='Enter Used Machine Number'
-                                        className='bg-gray-200 rounded-full border border-gray-400 outline-non focus:outline-none mt-1 py-2 px-4 w-72'
-                                        value={formData.usedMachineNumber} onChange={handleChange} />
+                                <div className="flex flex-col order border-black m">
+                                    <label htmlFor="usedMachineNumber" className="text-gray-800 ml-1 font-semibold">
+                                        Used Machine Name:
+                                    </label>
+                                    <select
+                                        name="usedMachineNumber"
+                                        id="usedMachineNumber"
+                                        value={formData.usedMachineNumber}
+                                        onChange={handleChange}
+                                        className="bg-gray-200 focus:outline-none border border-gray-400 rounded-full mt-1 py-2 px-4 w-72"
+                                    >
+                                        <option value="" disabled>
+                                            -- Select Machine Number --
+                                        </option>
+                                        {machines.length > 0 ? (
+                                            machines.map((machine) => (
+                                                <option key={machine.id} value={machine.id}>
+                                                    {machine.machine_name}
+                                                </option>
+                                            ))
+                                        ) : (
+                                            <option disabled>No Machines Available</option>
+                                        )}
+                                    </select>
+   
+                        </div>
+                                
                                 </div>
 
                                 <div className='w-80 mr-10 ml-9 flex flex-col'>
-                                    <label htmlFor="finishedDate" className='text-gray-800 ml-1 font-bold'>Finished Date:</label>
+                                    <label htmlFor="finishedDate" className='text-gray-800 ml-1 font-bold'>Finished Date</label>
                                     <input type="date" name="finishedDate"
                                         id="finishedDate"
+                                        min={new Date().toISOString().split("T")[0]} 
+                                        onKeyDown={(e) => e.preventDefault()} // Prevents manual typing 
+                                        //   max={ productData.data?.createdAt?.split("T")[0]}
+                                          max={ maxDate}
                                         className='bg-gray-200 rounded-full border border-gray-400 outline-non focus:outline-none mt-1 py-2 px-4 w-72'
                                         value={formData.finishedDate} onChange={handleChange} />
                                 </div>
@@ -324,6 +394,19 @@ const ViewWorkOrder = () => {
                                         </select>
                                 </div>
 
+                                
+                                 <div className='w-80 mr-10 ml-9 flex flex-col'>
+                                    <label htmlFor="date" className='text-gray-800 ml-1 font-bold'> Date:</label>
+                                    <input type="date" name="date"  id="date"
+                                         onKeyDown={(e) => e.preventDefault()}
+                                         min={new Date().toISOString().split('T')[0]} // Disables past dates
+                                        className='bg-gray-200 rounded-full border border-gray-400 outline-non focus:outline-none mt-1 py-2 px-4 w-72'
+                                        value={formData.date} onChange={handleChange} />
+                                </div>
+                            </div>
+
+                            <div className='flex mt-6'>
+                                 
                                 <div className='w-80 mr-10 ml-9 flex flex-col'>
                                     <label htmlFor="shift" className='text-gray-800 ml-1 font-bold'>Shift:</label>
                                    
@@ -338,17 +421,7 @@ const ViewWorkOrder = () => {
                                         <option value="3">3</option>
                                     </select>    
                                 </div>
-                            </div>
 
-                            <div className='flex mt-6'>
-                                  <div className='w-80 mr-10 ml-9 flex flex-col'>
-                                    <label htmlFor="date" className='text-gray-800 ml-1 font-bold'> Date:</label>
-                                    <input type="date" name="date"
-                                        id="date"
-                                        className='bg-gray-200 rounded-full border border-gray-400 outline-non focus:outline-none mt-1 py-2 px-4 w-72'
-                                        value={formData.date} onChange={handleChange} />
-                                </div>
-                                
                                 <div className='w-80 mr-10 ml-9 flex flex-col'>
                                     <label htmlFor="standardQty" className='text-gray-800 ml-1 font-bold'>Production Qty Per Shift:</label>
                                     <input type="text" 

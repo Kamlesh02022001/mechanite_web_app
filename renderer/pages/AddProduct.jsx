@@ -2,11 +2,7 @@ import React, { useState, useEffect } from "react";
 import Header from "./Header";
 import Dashboard from "./Dashboard";
 import { FiUpload } from "react-icons/fi"; // React Icons for an upload icon
-
-import Link from 'next/link';
-// import { useRouter } from 'next/router';
 import { useRouter } from 'next/router';
-
 import axios from "axios";
 
 
@@ -49,12 +45,27 @@ const [customerId, setCustomerId] = useState("");
   const [uploadCheckPoint, setUploadCheckPoint] = useState(null);
   const [uploadProcessPlan, setUploadProcessPlan] = useState(null);
   const [uploadControlPlan, setUploadControlPlan] = useState(null);
-  const router = useRouter();
+  // const router = useRouter();
   const [checkPoints, setCheckPoints] = useState([]); // Array to hold all points
   const [inputValue, setInputValue] = useState(""); // Current input value
   const [errorMessage, setErrorMessage] = useState(""); // Validation error message
   const [rawMaterialPerShift , setRawMaterialPerShift] = useState("");
 
+const router = useRouter();
+  const [token, setToken] = useState('');
+
+  useEffect(() => {
+    const storedToken = sessionStorage.getItem('authToken');
+    
+    if (storedToken) {
+        setToken(storedToken);
+       
+    } else {
+        router.replace('/'); // Redirect to login if no token
+    } 
+    console.log("token", token);
+}, []);
+   
 
 
   const handleSubmit = async (e) => {
@@ -210,20 +221,7 @@ const [customerId, setCustomerId] = useState("");
       setErrors({});
       try {
         const formData = new FormData();
-      //   if (selectedImage) {
-      //     // console.log("Selected Image:", selectedImage);
-      //     formData.append('product_image',{
-      //       uri: selectedImage.uri,
-      //       type : selectedImage.type || 'image/jpeg',
-      //       name : selectedImage.fileName || 'product_image.jpg'
-      //     }); 
-      // }
-      // if(uploadProductName){
-      // formData.append('product_drawing_image', {
-      //   uri: uploadProductName.uri,
-      //   type : uploadProductName.type || 'image/jpeg',
-      //   name : uploadProductName.fileName || 'product_image.jpg'
-      // });}
+      
 
       formData.append("product_image", selectedImage);
       formData.append("product_drawing_image",uploadProductName);
@@ -231,9 +229,7 @@ const [customerId, setCustomerId] = useState("");
       formData.append('control_plan', uploadControlPlan);
       formData.append('process_plan', uploadProcessPlan);
       formData.append('check_points', uploadCheckPoint);
-      // for (let [key, value] of formData.entries()) {
-      //     console.log(`${key}:`, value);
-      // }
+     
         
 
         // Append other form fields
@@ -269,11 +265,12 @@ const [customerId, setCustomerId] = useState("");
 
         
         const response = await axios.post(
-          "http://localhost:4000/api/create-product",
+          "https://machanite-be.onrender.com/api/create-product",
           
           formData,
           {
             headers: {
+              Authorization: `Bearer ${token}`,
               "Content-Type": "multipart/form-data",
             },
           }
@@ -328,69 +325,99 @@ const [customerId, setCustomerId] = useState("");
     }
   };
 
-  // Fetch all customers from the API
-  const fetchCustomers = async () => {
-    try {
-      setLoading(true);
-      const response = await axios.get(
-        "http://localhost:4000/customer/all"
-      );
-      console.log("API Response:", response.data); // Debug: log the API response
-      const customersData = response.data;
-      setCustomers(response.data); // Assume response is an array of customers
-       // Set default customer ID if available
-    if (customersData.length > 0) {
-      const defaultCustomerId = customersData[0].id; // Assuming customers have an `id` field
-      setSelectedCustomerId(defaultCustomerId);
-      console.log("Default Customer ID Settt:", defaultCustomerId);
+const fetchCustomers = async () => {
+    if (!token) {
+        // console.error("Authorization token is missing.");
+        // alert("Authorization token is required.");
+        return;
     }
-    } 
-    
-    catch (error) {
-      console.error("Error fetching customers:", error);
-      alert("Failed to fetch customers. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
 
+    try {
+        setLoading(true);
+        const response = await axios.get("https://machanite-be.onrender.com/customer/all", {
+            headers: { Authorization: `Bearer ${token}` }, // Include token in headers
+        });
+
+        console.log("API Response:", response.data);
+        const customersData = response.data;
+        setCustomers(customersData);
+
+        // Set default customer ID if available
+        if (customersData.length > 0) {
+            const defaultCustomerId = customersData[0].id;
+            setSelectedCustomerId(defaultCustomerId);
+            console.log("Default Customer ID Set:", defaultCustomerId);
+        }
+    } catch (error) {
+        console.error("Error fetching customers:", error);
+
+        // Handle authentication errors
+        if (error.response?.status === 401) {
+            alert("Unauthorized: Please log in again.");
+        } else if (error.response?.status === 403) {
+            alert("Forbidden: Insufficient privileges.");
+        } else {
+            alert("Failed to fetch customers. Please try again.");
+        }
+    } finally {
+        setLoading(false);
+    }
+};
+
+// Fetch customers on component mount when token is ready
+useEffect(() => {
+    if (token) {
+        fetchCustomers();
+    }
+}, [token]);
+
+  
   // Fetch customers on component mount  {SELECT CUSTOMER}
   useEffect(() => {
     fetchCustomers();
   }, []);
 
   const fetchShortName = async (customerId) => {
-    // Validate UUID before making the request
-    if (!customerId || typeof customerId !== 'string' ) {
-      console.error('Invalid UUID format:', customerId);
-      setErrors(prev => ({...prev, customerName: 'Invalid customer ID format'}));
-      return;
+    if (!customerId || typeof customerId !== "string") {
+        console.warn("Invalid Customer ID:", customerId);
+        setErrors((prev) => ({ ...prev, customerName: "Invalid customer ID format" }));
+        return;
     }
 
-    try {
-      setFetchingShortName(true);
-      const response = await axios.get(
-        `http://localhost:4000/customer/${customerId}`
-      );    
-      
-      if (response.data && response.data.customer_short_name) {
-        setShortName(response.data.customer_short_name);
-        
-        setErrors(prev => ({...prev, customerName: undefined}));
-      } else {
-        setShortName('');
-        console.warn('No short name found in response:', response.data);
-      }
-    } catch (error) {
-      console.error("Error fetching short name:", error.response || error);
-      setErrors(prev => ({
-        ...prev, 
-        customerName: 'Failed to fetch customer details'
-      }));
-    } finally {
-      setFetchingShortName(false);
+    if (!token) {
+        console.error("Authorization token is missing.");
+        // alert("Authorization token is required.");
+        return;
     }
-  };
+
+    setFetchingShortName(true);
+
+    try {
+        const response = await axios.get(`https://machanite-be.onrender.com/customer/${customerId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const fetchedShortName = response.data?.customer_short_name || "";
+        
+        // Update state only if the value is different
+        setShortName((prev) => (prev !== fetchedShortName ? fetchedShortName : prev));
+
+        setErrors((prev) => ({ ...prev, customerName: undefined }));
+    } catch (error) {
+        console.error("Error fetching short name:", error.response?.data || error.message);
+
+        const errorMessage = error.response?.status === 401
+            ? "Unauthorized: Please log in again."
+            : error.response?.status === 403
+            ? "Forbidden: Insufficient privileges."
+            : "Failed to fetch customer details. Please try again.";
+
+        setErrors((prev) => ({ ...prev, customerName: errorMessage }));
+    } finally {
+        setFetchingShortName(false);
+    }
+};
+
 
   const handleCustomerChange = (e) => {
     const selectedCustomerId = e.target.value;
@@ -410,28 +437,48 @@ const [customerId, setCustomerId] = useState("");
     }
   };
 
-  // Fetch next mold numbers for the selected customer
   const fetchNextMoldNumbers = async (customerId) => {
-    try {
-      setFetchingMoldNumbers(true);
-      const response = await axios.get(
-        `http://localhost:4000/api/next-mold-number/${customerId}`
-      );
-
-      console.log("API Response:", response.data);
-
-      const { moldNumber, moldCount } = response.data || {};
-      setMoldNo(moldNumber || "");
-      setCustomerMoldNo(moldCount ? `0${moldCount}` : "");
-      console.log("Fetched Mold No:", moldNumber);
-      console.log("Fetched Customer Wise Mold No:", moldCount);
-    } catch (error) {
-      console.error("Error fetching mold numbers:", error);
-      alert("Failed to fetch mold numbers. Please try again.");
-    } finally {
-      setFetchingMoldNumbers(false);
+    if (!customerId) {
+        console.warn("Customer ID is missing. Cannot fetch mold numbers.");
+        return;
     }
-  };
+    if (!token) {
+        console.error("Authorization token is missing.");
+        // alert("Authorization token is required.");
+        return;
+    }
+
+    setFetchingMoldNumbers(true);
+    
+    try {
+        const response = await axios.get(
+            `https://machanite-be.onrender.com/api/next-mold-number/${customerId}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        const { moldNumber = "", moldCount = "" } = response.data || {};
+        
+        // Update state only if values change (avoids unnecessary re-renders)
+        setMoldNo((prev) => (prev !== moldNumber ? moldNumber : prev));
+        setCustomerMoldNo((prev) => (prev !== moldCount ? `0${moldCount}` : prev));
+
+        console.log("Fetched Mold No:", moldNumber);
+        console.log("Fetched Customer Wise Mold No:", moldCount);
+    } catch (error) {
+        console.error("Error fetching mold numbers:", error.response?.data || error.message);
+
+        const errorMessage = error.response?.status === 401
+            ? "Unauthorized: Please log in again."
+            : error.response?.status === 403
+            ? "Forbidden: Insufficient privileges."
+            : "Failed to fetch mold numbers. Please try again.";
+
+        alert(errorMessage);
+    } finally {
+        setFetchingMoldNumbers(false);
+    }
+};
+
 
   // Calculate shift
   const calculateProductionPerShift = (cycleTime, efficiency, cavities) => {

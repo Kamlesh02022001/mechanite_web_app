@@ -4,6 +4,8 @@ import Header from './Header'
 import axios from 'axios';
 import { useRouter } from 'next/router';
 import { FaPlus } from "react-icons/fa6";
+import { jwtDecode } from "jwt-decode"; // ✅ Correct import
+
 
 const VendorInfo = () => {
         // const [customer_short_name,setCustomer_short_name] = useState ('');
@@ -38,11 +40,36 @@ const VendorInfo = () => {
                 const [isLoading, setIsLoading] = useState(true);
                 const [error, setError] = useState(null);
                 const [productData, setProductData] = useState([]);
+                const [user, setUser] = useState(null);
                 
              
             const router = useRouter();
             const { id } = router.query; // Get the ID from the query parameter
             console.log(id);
+            const [token, setToken] = useState('');
+                    
+                      useEffect(() => {
+                        const storedToken = sessionStorage.getItem('authToken');
+                        
+                        if (storedToken) {
+                            setToken(storedToken);
+                        
+                            try {
+                                        const decoded = jwtDecode(storedToken);
+                                        console.log("Decoded Token:", decoded);
+                                        setUser(decoded);
+                                    } catch (error) {
+                                        console.error("Error decoding token:", error);
+                                        sessionStorage.removeItem('authToken');
+                                        router.replace('/');
+                                    } 
+                        } else {
+                            router.replace('/'); // Redirect to login if no token
+                        }
+                    }, []);
+                    const isOperator  = user?.role === 'operator';
+                    const isAdmin = user?.role === 'admin';
+                    const isSuperviser = user?.role === 'supervisor';
 
         const handleSubmit = async (e) => {
           e.preventDefault(); // Prevents page refresh
@@ -132,25 +159,17 @@ const VendorInfo = () => {
           if (!designation.trim()) {
             isValid = false;
             newErrors.designation = "Designation is required.";
-          } else if (designation.trim().length < 3) {
-            isValid = false;
-            newErrors.designation = "Please enter a valid name.";
-          }
+          } 
+          
           if (!purchaseManagerDesignation.trim()) {
             isValid = false;
             newErrors.purchaseManagerDesignation = "Designation is required.";
-          } else if (purchaseManagerDesignation.trim().length < 3) {
-            isValid = false;
-            newErrors.purchaseManagerDesignation = "Please enter a valid name.";
-          }
+          } 
 
           if (!logisticDesignation.trim()) {
             isValid = false;
             newErrors.logisticDesignation = "Designation is required.";
-           }  else if (logisticDesignation.trim().length < 3) {
-            isValid = false;
-            newErrors.logisticDesignation = "Please enter a valid name.";
-          }
+           }  
 
           if (!logisticEmail.trim()) {
             isValid = false;
@@ -211,10 +230,11 @@ const VendorInfo = () => {
           console.log("Sending data to API:", formData);
           try {
             const response = await axios.put(
-                `http://localhost:4000/vendor/update/${id}`,
+                `https://machanite-be.onrender.com/vendor/update/${id}`,
                 formData,
                 {
                     headers: {
+                        Authorization: `Bearer ${token}`,
                         "Content-Type": "application/json",
                     },
                 
@@ -247,8 +267,10 @@ const VendorInfo = () => {
         useEffect(() => {
             const fetchData = async () => {
                 try {
-                 // const response = await axios.get('http://localhost:4000/customer/${id}');
-                    const response = await axios.get(`http://localhost:4000/vendor/${id}`);
+                 // const response = await axios.get('https://machanite-be.onrender.com/customer/${id}');
+                    const response = await axios.get(`https://machanite-be.onrender.com/vendor/${id}`,{
+                        headers: { Authorization: `Bearer ${token}` }, // ✅ Include token in headers
+                    });
 
                     setProductData(response.data);
                     console.log(response.data); // Log the data fetched
@@ -279,7 +301,7 @@ const VendorInfo = () => {
                 }
             };
             fetchData();
-        }, []);
+        }, [token]);
        
   return (
     <>
@@ -317,7 +339,7 @@ const VendorInfo = () => {
                             {/* msme  */}
                             <div className='flex flex-col '>
                                 <label for="msmeNo" className='text-gray-700 m-auto font-semibold'>MSME Number</label>
-                                <input  className='bg-gray-200 rounded-full mt-1 py-2 px-4 w-72' 
+                                <input disabled={isSuperviser || isOperator }  className='bg-gray-200 rounded-full mt-1 py-2 px-4 w-72' 
                                          type="text"
                                          id="msmeNo"
                                          name="msmeNo"
@@ -334,7 +356,7 @@ const VendorInfo = () => {
                              {/* gstin Nmber  */}
                              <div className='flex flex-col'>
                                 <label for="gstinNmber" className='mx-auto text-gray-700 font-semibold'>GSTIN Number</label>
-                                <input
+                                <input disabled={isSuperviser || isOperator }
                                     type="text"
                                     id="gst_num"
                                     name="gst_num"
@@ -356,7 +378,7 @@ const VendorInfo = () => {
                           {/* pan number  */}
                           <div className='flex flex-col'>
                                 <label for="panNo" className='mx-auto text-gray-700 font-semibold'>PAN Number</label>
-                                <input 
+                                <input disabled={isSuperviser || isOperator } 
                                         type="text"
                                         id="panNo"
                                         name="panNo"
@@ -372,7 +394,7 @@ const VendorInfo = () => {
 
                             <div className='flex flex-col '>
                                 <label for="tanNo" className='text-gray-700 m-auto font-semibold'>TAN Number</label>
-                                <input 
+                                <input disabled={isSuperviser || isOperator } 
                                      type="text"
                                      id="tanNo"
                                      name="tanNo"
@@ -400,8 +422,8 @@ const VendorInfo = () => {
                             {/* contact person name  */}
                             <div className='flex flex-col'>
                                 <label for="contactName" className='mx-auto text-gray-700 font-semibold'>Contact Person Name</label>
-                                {/* <input type="text" placeholder='Enter Contact Person Name' className='bg-gray-200 px-auto rounded-full mt-1 py-2 px-4 w-72 ' required/>   */}
-                                <input
+                                {/* <input disabled={isSuperviser || isOperator } type="text" placeholder='Enter Contact Person Name' className='bg-gray-200 px-auto rounded-full mt-1 py-2 px-4 w-72 ' required/>   */}
+                                <input disabled={isSuperviser || isOperator }
                                     type="text"
                                     id="contactName"
                                     name="contactName"
@@ -419,8 +441,8 @@ const VendorInfo = () => {
                                 {/* designation  */}
                             <div className='flex flex-col '>
                                 <label for="designation" className='text-gray-700 m-auto font-semibold'>Designation</label>
-                                {/* <input type="text"  placeholder='Enter Designation' className='bg-gray-200 rounded-full mt-1 py-2 px-4 w-72' required/>     */}
-                                                    <input
+                                {/* <input disabled={isSuperviser || isOperator } type="text"  placeholder='Enter Designation' className='bg-gray-200 rounded-full mt-1 py-2 px-4 w-72' required/>     */}
+                                                    <input disabled={isSuperviser || isOperator }
                                         type="text"
                                         id="designation"
                                         name="designation"
@@ -441,8 +463,8 @@ const VendorInfo = () => {
                                 {/* contact number */}
                             <div className='flex flex-col'>
                                 <label for="contactNumber" className='mx-auto text-gray-700 font-semibold'>Contact Number</label>
-                                {/* <input type="moblie" placeholder='Enter Contact Number' className='bg-gray-200 px-auto rounded-full mt-1 py-2 px-4 w-72' required/>  */}
-                                <input
+                                {/* <input disabled={isSuperviser || isOperator } type="moblie" placeholder='Enter Contact Number' className='bg-gray-200 px-auto rounded-full mt-1 py-2 px-4 w-72' required/>  */}
+                                <input disabled={isSuperviser || isOperator }
                                     type="text"
                                     id="contact"
                                     name="contact"
@@ -459,7 +481,7 @@ const VendorInfo = () => {
                              {/* email  */}
                             <div className='flex flex-col '>
                                 <label for="email" className='text-gray-700 m-auto font-semibold'>Email</label>
-                                <input
+                                <input disabled={isSuperviser || isOperator }
                                     type="text"
                                     id="qualityEmail"
                                     name="qualityEmail"
@@ -472,7 +494,7 @@ const VendorInfo = () => {
                                 {errors.qualityEmail && (
                                     <p className="text-red-500 text-sm mt-1">{errors.qualityEmail}</p>
                                 )}
-                                {/* <input type="text"  placeholder='Enter Email' className='bg-gray-200 rounded-full mt-1 py-2 px-4 w-72' required/>                    */}
+                                {/* <input disabled={isSuperviser || isOperator } type="text"  placeholder='Enter Email' className='bg-gray-200 rounded-full mt-1 py-2 px-4 w-72' required/>                    */}
                             </div>
                         </div> 
 
@@ -484,7 +506,7 @@ const VendorInfo = () => {
                              {/* logistic contact name   */}
                             <div className='flex flex-col'>
                                 <label for="contactPersonName" className='mx-auto text-gray-700 font-semibold'>Contact Person Name</label>
-                                <input
+                                <input disabled={isSuperviser || isOperator }
                                     type="text"
                                     id="logisticCustomerName"
                                     name="logisticCustomerName"
@@ -497,12 +519,12 @@ const VendorInfo = () => {
                                 {errors.logisticCustomerName && (
                                     <p className="text-red-500 text-sm mt-1">{errors.logisticCustomerName}</p>
                                 )} 
-                                {/* <input type="text" placeholder='Enter Contact Person Name' name="username" className='bg-gray-200 px-auto rounded-full mt-1 py-2 px-4 w-72 ' required/>                    */}
+                                {/* <input disabled={isSuperviser || isOperator } type="text" placeholder='Enter Contact Person Name' name="username" className='bg-gray-200 px-auto rounded-full mt-1 py-2 px-4 w-72 ' required/>                    */}
                             </div>
                              {/* logistic Designation  */}
                             <div className='flex flex-col '>
                                 <label for="designation" className='text-gray-700 m-auto font-semibold'>Designation</label>
-                                <input
+                                <input disabled={isSuperviser || isOperator }
                                     type="text"
                                     id="logisticDesignation"
                                     name="logisticDesignation"
@@ -515,7 +537,7 @@ const VendorInfo = () => {
                                 {errors.logisticDesignation && (
                                     <p className="text-red-500 text-sm mt-1">{errors.logisticDesignation}</p>
                                 )}
-                                {/* <input type="text"  placeholder='Enter Designation' className='bg-gray-200 rounded-full mt-1 py-2 px-4 w-72' required/>                    */}
+                                {/* <input disabled={isSuperviser || isOperator } type="text"  placeholder='Enter Designation' className='bg-gray-200 rounded-full mt-1 py-2 px-4 w-72' required/>                    */}
                             </div>
                         </div> 
 
@@ -524,7 +546,7 @@ const VendorInfo = () => {
                              {/* logistic contact  */}
                             <div className='flex flex-col'>
                                 <label for="contactNumber" className='mx-auto text-gray-700 font-semibold'>Contact Number</label>
-                                <input
+                                <input disabled={isSuperviser || isOperator }
                                     type="text"
                                     id="logisticContact"
                                     name="logisticContact"
@@ -537,12 +559,12 @@ const VendorInfo = () => {
                                 {errors.logisticContact && (
                                     <p className="text-red-500 text-sm mt-1">{errors.logisticContact}</p>
                                 )}
-                                {/* <input type="mobile" placeholder='Enter Contact Number' className='bg-gray-200 px-auto rounded-full mt-1 py-2 px-4 w-72' required/>                    */}
+                                {/* <input disabled={isSuperviser || isOperator } type="mobile" placeholder='Enter Contact Number' className='bg-gray-200 px-auto rounded-full mt-1 py-2 px-4 w-72' required/>                    */}
                             </div>
                             {/* logistic email  */}
                             <div className='flex flex-col '>
                                 <label for="email" className='text-gray-700 m-auto font-semibold'>Email</label>
-                                <input
+                                <input disabled={isSuperviser || isOperator }
                                     type="text"
                                     id="logisticEmail"
                                     name="logisticEmail"
@@ -555,7 +577,7 @@ const VendorInfo = () => {
                                 {errors.logisticEmail && (
                                     <p className="text-red-500 text-sm mt-1">{errors.logisticEmail}</p>
                                 )}
-                                {/* <input type="text"  placeholder='Enter Email' className='bg-gray-200 rounded-full mt-1 py-2 px-4 w-72' required/>                    */}
+                                {/* <input disabled={isSuperviser || isOperator } type="text"  placeholder='Enter Email' className='bg-gray-200 rounded-full mt-1 py-2 px-4 w-72' required/>                    */}
                             </div>
                         </div> 
 
@@ -570,7 +592,7 @@ const VendorInfo = () => {
                             {/* manager contact name   */}
                            <div className='flex flex-col'>
                                <label for="purchaseManagerCustomerName" className='mx-auto text-gray-700 font-semibold'>Contact Person Name</label>
-                               <input
+                               <input disabled={isSuperviser || isOperator }
                                    type="text"
                                    id="purchaseManagerCustomerName"
                                    name="purchaseManagerCustomerName"
@@ -583,12 +605,12 @@ const VendorInfo = () => {
                                {errors.purchaseManagerCustomerName && (
                                    <p className="text-red-500 text-sm mt-1">{errors.purchaseManagerCustomerName}</p>
                                )} 
-                               {/* <input type="text" placeholder='Enter Contact Person Name' name="username" className='bg-gray-200 px-auto rounded-full mt-1 py-2 px-4 w-72 ' required/>                    */}
+                               {/* <input disabled={isSuperviser || isOperator } type="text" placeholder='Enter Contact Person Name' name="username" className='bg-gray-200 px-auto rounded-full mt-1 py-2 px-4 w-72 ' required/>                    */}
                            </div>
                             {/*  manager Designation  */}
                            <div className='flex flex-col '>
                                <label for="purchaseManagerDesignation" className='text-gray-700 m-auto font-semibold'>Designation</label>
-                               <input
+                               <input disabled={isSuperviser || isOperator }
                                    type="text"
                                    id="purchaseManagerDesignation"
                                    name="purchaseManagerDesignation"
@@ -601,7 +623,7 @@ const VendorInfo = () => {
                                {errors.purchaseManagerDesignation && (
                                    <p className="text-red-500 text-sm mt-1">{errors.purchaseManagerDesignation}</p>
                                )}
-                               {/* <input type="text"  placeholder='Enter Designation' className='bg-gray-200 rounded-full mt-1 py-2 px-4 w-72' required/>                    */}
+                               {/* <input disabled={isSuperviser || isOperator } type="text"  placeholder='Enter Designation' className='bg-gray-200 rounded-full mt-1 py-2 px-4 w-72' required/>                    */}
                            </div>
                        </div> 
 
@@ -610,7 +632,7 @@ const VendorInfo = () => {
                             {/* manager contact  */}
                            <div className='flex flex-col'>
                                <label for="purchaseManagerContact" className='mx-auto text-gray-700 font-semibold'>Contact Number</label>
-                               <input
+                               <input disabled={isSuperviser || isOperator }
                                    type="text"
                                    id="purchaseManagerContact"
                                    name="purchaseManagerContact"
@@ -623,12 +645,12 @@ const VendorInfo = () => {
                                {errors.purchaseManagerContact && (
                                    <p className="text-red-500 text-sm mt-1">{errors.purchaseManagerContact}</p>
                                )}
-                               {/* <input type="mobile" placeholder='Enter Contact Number' className='bg-gray-200 px-auto rounded-full mt-1 py-2 px-4 w-72' required/>                    */}
+                               {/* <input disabled={isSuperviser || isOperator } type="mobile" placeholder='Enter Contact Number' className='bg-gray-200 px-auto rounded-full mt-1 py-2 px-4 w-72' required/>                    */}
                            </div>
                            {/* manager email  */}
                            <div className='flex flex-col '>
                                <label for="purchaseManagerEmail" className='text-gray-700 m-auto font-semibold'>Email</label>
-                               <input
+                               <input disabled={isSuperviser || isOperator }
                                    type="text"
                                    id="purchaseManagerEmail"
                                    name="purchaseManagerEmail"
@@ -641,13 +663,14 @@ const VendorInfo = () => {
                                 <p className="text-red-500 text-sm mt-1">{errors.purchaseManagerEmail}</p>
                             )}
                                
-                               {/* <input type="text"  placeholder='Enter Email' className='bg-gray-200 rounded-full mt-1 py-2 px-4 w-72' required/>                    */}
+                               {/* <input disabled={isSuperviser || isOperator } type="text"  placeholder='Enter Email' className='bg-gray-200 rounded-full mt-1 py-2 px-4 w-72' required/>                    */}
                            </div>
                        </div> 
                         
-                        <div className='flex justify-center '>
+                       {( isAdmin) && (<div className='flex justify-center '>
                              <button type="submit" className='bg-[#7d40ff] rounded-full mb-2 w-52 px-4 py-2 text-white mt-5'>Submit</button>
-                        </div>  {successMessage && (
+                        </div> )}
+                         {successMessage && (
                                 <p className="text-green-500 text-lg flex justify-center ">{successMessage}</p>
                             )}
                     </div>

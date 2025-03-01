@@ -11,10 +11,26 @@ const MachineList = () => {
 
     const router = useRouter();
 
+    const [token, setToken] = useState('');
+                
+                  useEffect(() => {
+                    const storedToken = sessionStorage.getItem('authToken');
+                    
+                    if (storedToken) {
+                        setToken(storedToken);
+                       
+                    } else {
+                        router.replace('/'); // Redirect to login if no token
+                    }
+                }, []);
+
     useEffect(() => {
+        if(!token){return;}
         const fetchData = async () => {
             try {
-                const response = await axios.get('http://localhost:4000/machine/all');
+                const response = await axios.get('https://machanite-be.onrender.com/machine/all',{
+                    headers: { Authorization: `Bearer ${token}` }, // ✅ Include token in headers
+                });
                 setProductData(response.data);
                 console.log(response.data); // Log the data fetched
             } catch (err) {
@@ -25,7 +41,7 @@ const MachineList = () => {
             }
         };
         fetchData();
-    }, []);
+    }, [token]);
 
     const handleMoreClick = (id) => {
         router.push({

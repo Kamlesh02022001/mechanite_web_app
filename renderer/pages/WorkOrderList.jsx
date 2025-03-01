@@ -1,51 +1,84 @@
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
-import Dashboard from './Dashboard';
-import Header from './Header';
-import axios from 'axios';
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/router";
+import Dashboard from "./Dashboard";
+import Header from "./Header";
+import axios from "axios";
 
 const WorkOrderList = () => {
-    // const [productData, setProductData] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [productData, setProductData] = useState([]); // Ensure initial value is an array
-
+    const [token, setToken] = useState("");
 
     const router = useRouter();
 
+    // Retrieve Token from Session Storage
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const response = await axios.get('http://localhost:4000/work-order/all');
-    
-                console.log("API Response:", response.data); // Debugging output
-    
-                // Extract the correct array from the response
-                if (Array.isArray(response.data.data)) {
-                    setProductData(response.data.data);
-                } else {
-                    console.error("Expected an array but got:", response.data);
-                    setProductData([]); // Fallback to an empty array
-                }
-            } catch (err) {
-                console.error('Error fetching data:', err);
-                setError('Failed to load work orders.');
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchData();
+        const storedToken = sessionStorage.getItem("authToken");
+
+        if (storedToken) {
+            setToken(storedToken);
+        } else {
+            router.replace("/"); // Redirect to login if no token
+        }
     }, []);
-    
-    
+
+    console.log("Token:", token);
+
+    // Fetch Data Function
+    const fetchData = async () => {
+        if (!token) {
+            console.error("Authorization token is missing.");
+            setError("Authorization token is required.");
+            setIsLoading(false);
+            return;
+        }
+
+        try {
+            const response = await axios.get("https://machanite-be.onrender.com/work-order/all", {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                },
+            });
+
+            console.log("API Response:", response.data); // Debugging output
+
+            // Extract the correct array from the response
+            if (Array.isArray(response.data.data)) {
+                setProductData(response.data.data);
+            } else {
+                console.error("Expected an array but got:", response.data);
+                setProductData([]); // Fallback to an empty array
+            }
+        } catch (err) {
+            console.error("Error fetching data:", err);
+
+            // Handle authentication errors
+            if (err.response?.status === 401) {
+                setError("Unauthorized: Please log in again.");
+            } else if (err.response?.status === 403) {
+                setError("Forbidden: Insufficient privileges.");
+            } else {
+                setError("Failed to load work orders.");
+            }
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Fetch Data Only When Token is Available
+    useEffect(() => {
+        if (token) { 
+            fetchData();
+        }
+    }, [token]); // Runs when token is set
 
     const handleMoreClick = (id) => {
         router.push({
-            pathname: '/ViewWorkOrder',
-            query: {  id },
+            pathname: "/ViewWorkOrder",
+            query: { id },
         });
-         
-       
     };
 
     return (
@@ -80,14 +113,15 @@ const WorkOrderList = () => {
                                     >
                                         <div className="flex flex-col gap-3">
                                             <p>
-                                                <strong className="text-gray-800 font-bold">Product Name :</strong>{' '}
-                                                {workOrder.product?.component_description || 'No Description Available'}
+                                                <strong className="text-gray-800 font-bold">Product Name :</strong>{" "}
+                                                {workOrder.product?.component_description || "No Description Available"}
                                             </p>
                                             <p>
-                                                <strong className="text-gray-800 font-bold">Start Date :</strong>{' '}
-                                                {new Date(workOrder.createdAt).toISOString().split("T")[0] || 'No Description Available'}
+                                                <strong className="text-gray-800 font-bold">Start Date :</strong>{" "}
+                                                {workOrder.createdAt
+                                                    ? new Date(workOrder.createdAt).toISOString().split("T")[0]
+                                                    : "No Description Available"}
                                             </p>
-                                            
                                         </div>
 
                                         <div className="mt-7 flex justify-center">

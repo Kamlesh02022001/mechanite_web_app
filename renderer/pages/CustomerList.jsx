@@ -10,11 +10,29 @@ const CustomerList = () => {
     const [error, setError] = useState(null);
 
     const router = useRouter();
+     const [token, setToken] = useState('');
+            
+              useEffect(() => {
+                const storedToken = sessionStorage.getItem('authToken');
+                
+                if (storedToken) {
+                    setToken(storedToken);
+                   
+                } else {
+                    router.replace('/'); // Redirect to login if no token
+                }
+            }, []);
 
     useEffect(() => {
+        if (!token) {
+            // console.error('Authorization token is missing.');
+            return;
+        }
         const fetchData = async () => {
             try {
-                const response = await axios.get('http://localhost:4000/customer/all');
+                const response = await axios.get('https://machanite-be.onrender.com/customer/all', {
+                    headers: { Authorization: `Bearer ${token}` }, // Include token in request headers
+                });
                 setProductData(response.data);
                 console.log(response.data); // Log the data fetched
             } catch (err) {
@@ -25,7 +43,7 @@ const CustomerList = () => {
             }
         };
         fetchData();
-    }, []);
+    }, [token]);
 
     const handleMoreClick = (id) => {
         router.push({

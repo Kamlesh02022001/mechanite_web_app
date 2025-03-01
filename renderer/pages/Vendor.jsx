@@ -1,7 +1,8 @@
-import React, { useState }  from 'react'
+import React, { useState, useEffect }  from 'react'
 import Dashboard from './Dashboard'
 import Header from './Header'
 import axios from 'axios';
+import { useRouter } from 'next/router';
 
 const Vendor = () => {
         const [customer_short_name,setCustomer_short_name] = useState ('');
@@ -36,6 +37,20 @@ const Vendor = () => {
          // Checkbox state
             const [sameAsAbove, setSameAsAbove] = useState(false);
             const [sameAsAboveManager, setSameAsAboveManager] = useState(false);
+
+            const router = useRouter();
+                             const [token, setToken] = useState('');
+                                
+                                  useEffect(() => {
+                                    const storedToken = sessionStorage.getItem('authToken');
+                                    
+                                    if (storedToken) {
+                                        setToken(storedToken);
+                                       
+                                    } else {
+                                        router.replace('/'); // Redirect to login if no token
+                                    }
+                                }, []);
                 
         const handleSubmit = async (e) => {
           e.preventDefault(); // Prevents page refresh
@@ -217,10 +232,11 @@ const Vendor = () => {
           console.log("Sending data to API:", formData);
           try {
             const response = await axios.post(
-                'http://localhost:4000/vendor/create',
+                'https://machanite-be.onrender.com/vendor/create',
                 formData,
                 {
                     headers: {
+                        Authorization: `Bearer ${token}`,
                         "Content-Type": "application/json",
                     },
                 }

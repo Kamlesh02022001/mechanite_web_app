@@ -53,29 +53,35 @@ const ViewSalesOrder = () => {
     const router = useRouter();
     const { id } = router.query;
     console.log('Received ID: Effect', id);
-    // useEffect(() => {
-    //     console.log('Received ID: Effect', id); // Check if ID is received
-    // }, [id]);
-    // const router = useRouter();
-    // const { id } = router.query;
-    // console.log(id,"hello");
-    
+     const [token, setToken] = useState('');
+            
+              useEffect(() => {
+                const storedToken = sessionStorage.getItem('authToken');
+                
+                if (storedToken) {
+                    setToken(storedToken);
+                   
+                } else {
+                    router.replace('/'); // Redirect to login if no token
+                }
+            }, []);
+               console.log("token", token);
+        
    
     // Fetch data from API using Axios
     useEffect(() => {
+        if (!token) return; 
         const fetchData = async () => {
             try {
 
-                const response = await axios.get(`http://localhost:4000/sales-order/${id}`);
+                const response = await axios.get(`https://machanite-be.onrender.com/sales-order/${id}`, {
+                    headers: { Authorization: `Bearer ${token}` }, // ✅ Include token in headers
+                });
                 setProductData(response.data);
                 
                 
                 const data = response.data;
-                console.log('API response:',data);
-
-               
-
-                                            
+                console.log('API response:',data);        
 
             } catch (error) {
                 console.error('Error fetching data:', error);
@@ -89,7 +95,7 @@ const ViewSalesOrder = () => {
         };
 
         fetchData();
-    }, []);
+    }, [token]);
 
 
   

@@ -2,7 +2,7 @@ import React, {useState, useEffect} from 'react';
 import Dashboard from './Dashboard';
 import Header from './Header';
 import axios from 'axios';
-
+import { useRouter } from 'next/router';
 import {FaPlus, FaTrash} from 'react-icons/fa';
 
 const SalesOrder = () => {
@@ -22,6 +22,20 @@ const SalesOrder = () => {
   const [products, setProducts] = useState([]);
   const [customerId, setCustomerId] = useState('');
   const [productId, setProductId] = useState('');
+
+   const router = useRouter();
+        const [token, setToken] = useState('');
+      
+        useEffect(() => {
+          const storedToken = sessionStorage.getItem('authToken');
+          
+          if (storedToken) {
+              setToken(storedToken);
+             
+          } else {
+              router.replace('/'); // Redirect to login if no token
+          }
+      }, []);
 
   const handleSubmit = async e => {
     e.preventDefault();
@@ -82,8 +96,10 @@ const SalesOrder = () => {
 
     try {
       const response = await axios.post(
-        'http://localhost:4000/sales-order/create',
-        payload,
+        'https://machanite-be.onrender.com/sales-order/create',
+        payload, {
+          headers: { Authorization: `Bearer ${token}` }, // ✅ Include token in headers
+      }   
       );
       console.log('Order created successfully:', response.data);
 
@@ -149,13 +165,20 @@ const SalesOrder = () => {
     //   setShipping(''); 
     }
   };
+
   useEffect(() => {
+    if (!token) return;
     const fetchData = async () => {
       try {
         const [customerResponse, productResponse] = await Promise.all([
-          axios.get('http://localhost:4000/customer/all'), 
-          axios.get('http://localhost:4000/api/get-all-products'),
+          axios.get('https://machanite-be.onrender.com/customer/all', {
+            headers: { Authorization: `Bearer ${token}` },
+          }), 
+          axios.get('https://machanite-be.onrender.com/api/get-all-products', {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
         ]);
+       
         console.log('Customer API Response:', productResponse.data);
 
         if (Array.isArray(customerResponse.data)) {
@@ -181,7 +204,7 @@ const SalesOrder = () => {
     };
 
     fetchData();
-  }, []);
+  }, [token]);
 
   // Handle customer selection
   const handleCustomerChange = e => {
@@ -294,7 +317,7 @@ const SalesOrder = () => {
                     <label
                       htmlFor="purchaseOrder"
                       className="text-gray-800 ml-1 font-semibold">
-                      Enter Purchase Order Number
+                      Enter Sales Order Number
                     </label>
                     <input
                       type="number"
@@ -417,6 +440,7 @@ const SalesOrder = () => {
                         placeholder="Select date"
                         id="date"
                         value={date}
+                        min={new Date().toISOString().split('T')[0]} // Disables past dates
                         name="date"
                         onChange={e => setDate(e.target.value)}
                         className="bg-gray-200 rounded-full mr-24 mt-1 py-2 px-4 w-72"

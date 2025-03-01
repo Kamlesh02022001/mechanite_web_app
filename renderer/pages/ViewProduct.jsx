@@ -57,13 +57,28 @@ const ViewProduct = () => {
     const [showList, setShowList] = useState(false);
     // Check if check_points array exists
   const pdfLinks = productData.files_key?.check_points || [];
+   const [token, setToken] = useState('');
+      
+        useEffect(() => {
+          const storedToken = sessionStorage.getItem('authToken');
+          
+          if (storedToken) {
+              setToken(storedToken);
+             
+          } else {
+              router.replace('/'); // Redirect to login if no token
+          }
+      }, []);
     
     // Fetch data from API using Axios
     useEffect(() => {
+        if(!token){return;}
         const fetchData = async () => {
             try {
 
-                const response = await axios.get(`http://localhost:4000/api/get-product/${product_id}`);
+                const response = await axios.get(`https://machanite-be.onrender.com/api/get-product/${product_id}`,{
+                    headers: { Authorization: `Bearer ${token}` }, // ✅ Include token in headers
+                });
                 setProductData(response.data);
                 
                 
@@ -132,7 +147,7 @@ const ViewProduct = () => {
         };
 
         fetchData();
-    }, [product_id, refreshData]);
+    }, [product_id, refreshData, token]);
 
 
   const handleFileChange = (e) => {
@@ -168,7 +183,7 @@ const handleUpload = async () => {
 
     try {
         const response = await axios.post(
-            "http://localhost:4000/api/upload_files",
+            "https://machanite-be.onrender.com/api/upload_files",
             formData,
             {
                 headers: { "Content-Type": "multipart/form-data" },
@@ -203,7 +218,7 @@ const handleSave = async () => {
   try {
       // Make a PUT request to update the product data on the API server
       const response = await axios.put(
-          `http://localhost:4000/api/edit-product/${product_id}`, 
+          `https://machanite-be.onrender.com/api/edit-product/${product_id}`, 
           productData
       );
 

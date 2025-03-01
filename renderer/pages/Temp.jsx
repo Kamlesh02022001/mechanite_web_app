@@ -22,7 +22,7 @@ const ViewWorkOrder = () => {
         const fetchData = async () => {
             try {
 
-                const response = await axios.get(`http://localhost:4000/work-order/${id}`);
+                const response = await axios.get(`https://machanite-be.onrender.com/work-order/${id}`);
                 setProductData(response.data);
                 
                 
@@ -51,7 +51,7 @@ const ViewWorkOrder = () => {
  useEffect(() => {
     const fetchUsers = async () => {
         try {
-            const response = await axios.get(`http://localhost:4000/users/all`);
+            const response = await axios.get(`https://machanite-be.onrender.com/users/all`);
             setOperators(response.data.operator || []); // Ensure `operator` exists
             console.log('Users Data:', response.data);
         } catch (error) {

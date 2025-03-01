@@ -15,10 +15,29 @@ const ProductList = () => {
 
     const router = useRouter();
 
+    const [token, setToken] = useState('');
+            
+              useEffect(() => {
+                const storedToken = sessionStorage.getItem('authToken');
+                
+                if (storedToken) {
+                    setToken(storedToken);
+                   
+                } else {
+                    router.replace('/'); // Redirect to login if no token
+                }
+            }, []);
+
+
+            
+
     useEffect(() => {
         const fetchData = async () => {
+            if(!token){return;}
             try {
-                const response = await axios.get('http://localhost:4000/api/get-all-products');
+                const response = await axios.get('https://machanite-be.onrender.com/api/get-all-products',{
+                    headers: { Authorization: `Bearer ${token}` }, // ✅ Include token in headers
+                });
                 console.log(response.data)
                 setProductData(response.data);
                 setFilteredData(response.data);
@@ -30,7 +49,7 @@ const ProductList = () => {
             }
         };
         fetchData();
-    }, []);
+    }, [token]);
 
     useEffect(() => {
         const filtered = productData.filter(product => 

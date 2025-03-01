@@ -7,7 +7,7 @@ import { useRouter } from 'next/router';
 import Papa from 'papaparse';
 import { FaRegEdit } from "react-icons/fa";
 import { GrEdit } from "react-icons/gr";
-
+import { jwtDecode } from "jwt-decode"; // ✅ Correct import
 
 
 const EditViewProduct = () => {
@@ -71,13 +71,42 @@ const EditViewProduct = () => {
     const [showList, setShowList] = useState(false);
     // Check if check_points array exists
   const pdfLinks = productData.files_key?.check_points || [];
-    
+ const [user, setUser] = useState(null);
+      
+  const [token, setToken] = useState('');
+          
+            useEffect(() => {
+              const storedToken = sessionStorage.getItem('authToken');
+              
+              if (storedToken) {
+                  setToken(storedToken);
+                 try {
+                         const decoded = jwtDecode(storedToken);
+                         console.log("Decoded Token:", decoded);
+                         setUser(decoded);
+                       } catch (error) {
+                         console.error("Error decoding token:", error);
+                         sessionStorage.removeItem('authToken');
+                         router.replace('/');
+                       }
+              } else {
+                  router.replace('/'); // Redirect to login if no token
+              }
+          }, []);
+        const isAdmin = user?.role === 'admin';
+        const isOperator  = user?.role === 'operator';
+        const isSuperviser = user?.role === 'supervisor';
+
+
     // Fetch data from API using Axios
     useEffect(() => {
+        if(!token){return;}
         const fetchData = async () => {
             try {
 
-                const response = await axios.get(`http://localhost:4000/api/get-product/${product_id}`);
+                const response = await axios.get(`https://machanite-be.onrender.com/api/get-product/${product_id}`,{
+                    headers: { Authorization: `Bearer ${token}` }, // ✅ Include token in headers
+                });
                 setProductData(response.data);
                 
                 
@@ -147,7 +176,7 @@ const EditViewProduct = () => {
         };
 
         fetchData();
-    }, [product_id, refreshData]);
+    }, [product_id, refreshData,token]);
 
 // Handles dropdown selection change
 // const handleSelectChange = (index, value) => {
@@ -187,10 +216,11 @@ const handleUpload = async () => {
 
     try {
         const response = await axios.post(
-            "http://localhost:4000/api/upload_files",
+            "https://machanite-be.onrender.com/api/upload_files",
             formData,
             {
-                headers: { "Content-Type": "multipart/form-data" },
+                headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" }
+                
             }
         );
 
@@ -222,8 +252,10 @@ const handleSave = async () => {
   try {
       // Make a PUT request to update the product data on the API server
       const response = await axios.put(
-          `http://localhost:4000/api/edit-product/${product_id}`, 
-          productData
+          `https://machanite-be.onrender.com/api/edit-product/${product_id}`, 
+          productData,{
+            headers: { Authorization: `Bearer ${token}` }, // ✅ Include token in headers
+        }
       );
 
       // Assuming the API returns the updated data or a success message
@@ -242,7 +274,9 @@ const handleSave = async () => {
 // Function to fetch material data from API
 const fetchMaterials = async () => {
     try {
-        const response = await fetch("http://localhost:4000/raw-material/all");
+        const response = await fetch("https://machanite-be.onrender.com/raw-material/all",{
+            headers: { Authorization: `Bearer ${token}` }, // ✅ Include token in headers
+        });
         const data = await response.json();
 
         console.log("Full API Response:", data); // Debugging API response
@@ -314,10 +348,10 @@ const handleSelectChange = (index, value) => {
             
     try {
         const response = await axios.put(
-            "http://localhost:4000/api/replace-raw-material",
+            "https://machanite-be.onrender.com/api/replace-raw-material",
             updatedMaterial,
             {
-                headers: { "Content-Type": "application/json" },
+                headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
             }
         );
 
@@ -382,15 +416,15 @@ const handleSelectChange = (index, value) => {
                         </div>     */}
 
                          {/* Component Description and Status */}
-                        <div className='flex  mt-10  ml-10'>
+                        <div className='flex  mt-10  ml-16'>
                         <div className="w-80 mr-10">
-            <label className="text-gray-800 font-bold">Component Description :</label>
+            <label className="ml-1 text-gray-800 font-bold">Component Description :</label>
             <input 
                 type="text" 
                 name="hsm_code" 
                 value={productData.component_description  || ""} 
                 onChange={handleInputChange} 
-                className="border p-2 border-gray-400 mt-2 w-full" 
+                className="bg-gray-200 rounded-full focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72" 
                 disabled={!isEditing} 
             />
              {productData.process_plan_url ? (
@@ -400,7 +434,7 @@ const handleSelectChange = (index, value) => {
                                         href={images}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="text-white rounded-md mt-10 bg-[#926be6] px-4 py-0.5"
+                                        className="ml-1 text-white rounded-md mt-10 bg-[#926be6] px-4 py-0.5"
                                     >
                                         View Image / PDF
                                     </a>
@@ -410,13 +444,13 @@ const handleSelectChange = (index, value) => {
                             )}
         </div>
                             <div className="w-80 mr-10">
-            <label className="text-gray-800 font-bold">Status :</label>
+            <label className="ml-1 text-gray-800 font-bold">Status :</label>
             <input 
                 type="text" 
                 name="hsm_code" 
                 value={productData.hsm_code  || ""} 
                 onChange={handleInputChange} 
-                className="border p-2 border-gray-400 mt-2 w-full" 
+                className="bg-gray-200 rounded-full focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72" 
                 disabled={!isEditing} 
             />
         </div>
@@ -425,78 +459,78 @@ const handleSelectChange = (index, value) => {
                         </div>  
 
                          {/* HSM and MHC */}  
-                        <div className="flex mt-8 ml-10">
+                        <div className="flex mt-8 ml-16">
         <div className="w-80 mr-10">
-            <label className="text-gray-800 font-bold">HSM Code :</label>
+            <label className="ml-1 text-gray-800 font-bold">HSM Code :</label>
             <input 
                 type="text" 
                 name="hsm_code" 
                 value={productData.hsm_code  || ""} 
                 onChange={handleInputChange} 
-                className="border p-2 border-gray-400 mt-2 w-full" 
+                className="bg-gray-200 rounded-full focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72" 
                 disabled={!isEditing} 
             />
         </div>
         <div className="w-80 mr-10">
-            <label className="text-gray-800 font-bold">HHC Number:</label>
+            <label className="ml-1 text-gray-800 font-bold">HHC Number:</label>
             <input 
                 type="text" 
                 name="mhc_no" 
                 value={productData.mhc_no  || ""} 
                 onChange={handleInputChange} 
-                className="border p-2 border-gray-400 mt-2 w-full" 
+                className="bg-gray-200 rounded-full focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72" 
                 disabled={!isEditing} 
             />
         </div>
     </div>     
                     
                          {/* Item Code and Mold */}
-                        <div className="flex mt-8 ml-10">
+                        <div className="flex mt-8 ml-16">
         <div className="w-80 mr-10">
-            <label className="text-gray-800 font-bold">Item Code :</label>
+            <label className="ml-1 text-gray-800 font-bold">Item Code :</label>
             <input 
                 type="text" 
                 name="hsm_code" 
                 value={productData.item_code  || ""} 
                 onChange={handleInputChange} 
-                className="border p-2 border-gray-400 mt-2 w-full" 
+                className="bg-gray-200 rounded-full focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72" 
                 disabled={!isEditing} 
             />
         </div>
         <div className="w-80 mr-10">
-            <label className="text-gray-800 font-bold">Mold Number :</label>
+            <label className="ml-1 text-gray-800 font-bold">Mold Number :</label>
             <input 
                 type="text" 
                 name="mhc_no" 
                 value={productData.mold_no  || ""} 
                 onChange={handleInputChange} 
-                className="border p-2 border-gray-400 mt-2 w-full" 
+                className="bg-gray-200 rounded-full focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72" 
                 disabled={!isEditing} 
             />
         </div>
     </div>    
                     
                          {/* Customer Wise Mold and Machine Type */}
-                        <div className="flex mt-8 ml-10">
+                        <div className="flex mt-8 ml-16">
         <div className="w-80 mr-10">
-            <label className="text-gray-800 font-bold">Customer Wise Mold Number :</label>
+            <label className="ml-1 text-gray-800 font-bold">Customer Wise Mold Number :</label>
             <input 
                 type="text" 
                 name="hsm_code" 
                 value={productData.customer_wise_mold_no   || ""} 
                 onChange={handleInputChange} 
-                className="border p-2 border-gray-400 mt-2 w-full" 
+                className="bg-gray-200 rounded-full focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72" 
                 disabled={!isEditing} 
             />
         </div>
         <div className="w-80 mr-10">
-            <label className="text-gray-800 font-bold">Machine Type :</label>
+            <label className="ml-1 text-gray-800 font-bold">Machine Type :</label>
             <input 
                 type="text" 
                 name="mhc_no" 
                 value={productData.machine_type || ""} 
                 onChange={handleInputChange} 
-                className="border p-2 border-gray-400 mt-2 w-full" 
+                className="bg-gray-200 rounded-full focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72" 
                 disabled={!isEditing} 
             />
         </div>
@@ -505,25 +539,25 @@ const handleSelectChange = (index, value) => {
                          {/* Maintance and Process Plan Number */}
                         <div className='flex  mt-8 ml-16'>
                             <div className="w-80 mr-10">
-                                <label className="text-gray-800 font-bold">Maintance :</label>
+                                <label className="ml-1 text-gray-800 font-bold">Maintance :</label>
                                 <input 
                                     type="text" 
                                     name="hsm_code" 
                                     value={productData.maintenance   || ""} 
                                     onChange={handleInputChange} 
-                                    className="border p-2 border-gray-400 mt-2 w-full" 
+                                    className="bg-gray-200 rounded-full focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72" 
                                     disabled={!isEditing} 
                                 />
                             </div>
                             
                             <div className="w-80 mr-10">
-                                <label className="text-gray-800 font-bold">Process Plan Number :</label>
+                                <label className="ml-1 text-gray-800 font-bold">Process Plan Number :</label>
                                 <input 
                                     type="text" 
                                     name="hsm_code" 
                                     value={productData.process_plan_no   || ""} 
                                     onChange={handleInputChange} 
-                                    className="border p-2 border-gray-400 mt-2 w-full" 
+                                    className="bg-gray-200 rounded-full focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72" 
                                     disabled={!isEditing} 
                                 />
                                  <div className='mt-2'>
@@ -536,7 +570,7 @@ const handleSelectChange = (index, value) => {
                                         }}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="text-white rounded-md mt-10 bg-[#926be6] px-4 py-0.5"
+                                        className="ml-1 text-white rounded-md mt-10 bg-[#926be6] px-4 py-0.5"
                                     >
                                         View XLS
                                     </Link>
@@ -550,13 +584,13 @@ const handleSelectChange = (index, value) => {
                          {/* Control Plan Number and Number Of Cavities */}
                         <div className='flex  mt-8 ml-16'>
                              <div className="w-80 mr-10">
-                                <label className="text-gray-800 font-bold">Control Plan Number :</label>
+                                <label className="ml-1 text-gray-800 font-bold">Control Plan Number :</label>
                                 <input 
                                     type="text" 
                                     name="hsm_code" 
                                     value={productData.control_plan_no   || ""} 
                                     onChange={handleInputChange} 
-                                    className="border p-2 border-gray-400 mt-2 w-full" 
+                                    className="bg-gray-200 rounded-full focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72" 
                                     disabled={!isEditing} 
                                 />
                                 <div className='mt-2'>
@@ -569,7 +603,7 @@ const handleSelectChange = (index, value) => {
                                         }}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="text-white rounded-md mt-10 bg-[#926be6] px-4 py-0.5"
+                                        className="ml-1 text-white rounded-md mt-10 bg-[#926be6] px-4 py-0.5"
                                     >
                                         View XLS
                                     </Link>
@@ -580,13 +614,13 @@ const handleSelectChange = (index, value) => {
                             </div>
                             
                             <div className="w-80 mr-10">
-                                <label className="text-gray-800 font-bold">Number Of Cavities  :</label>
+                                <label className="ml-1 text-gray-800 font-bold">Number Of Cavities  :</label>
                                 <input 
                                     type="text" 
                                     name="hsm_code" 
                                     value={productData.no_of_cavities  || ""} 
                                     onChange={handleInputChange} 
-                                    className="border p-2 border-gray-400 mt-2 w-full" 
+                                    className="bg-gray-200 rounded-full focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72" 
                                     disabled={!isEditing} 
                                 />
                             </div>
@@ -595,24 +629,24 @@ const handleSelectChange = (index, value) => {
                          {/* Net Weight and Runner Weight */}
                         <div className="flex mt-8 ml-16">
                             <div className="w-80 mr-10">
-                                <label className="text-gray-800 font-bold">Net Weight (Component) :</label>
+                                <label className="ml-1 text-gray-800 font-bold">Net Weight (Component) :</label>
                                 <input 
                                     type="text" 
                                     name="hsm_code" 
                                     value={productData.net_weight_component  || ""} 
                                     onChange={handleInputChange} 
-                                    className="border p-2 border-gray-400 mt-2 w-full" 
+                                    className="bg-gray-200 rounded-full focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72" 
                                     disabled={!isEditing} 
                                 />
                             </div>
                             <div className="w-80 mr-10">
-                                <label className="text-gray-800 font-bold">Runner Weight Per Shot :</label>
+                                <label className="ml-1 text-gray-800 font-bold">Runner Weight Per Shot :</label>
                                 <input 
                                     type="text" 
                                     name="mhc_no" 
                                     value={productData.runner_weight_per_shot || ""} 
                                     onChange={handleInputChange} 
-                                    className="border p-2 border-gray-400 mt-2 w-full" 
+                                    className="bg-gray-200 rounded-full focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72" 
                                     disabled={!isEditing} 
                                 />
                             </div>
@@ -621,24 +655,24 @@ const handleSelectChange = (index, value) => {
                          {/* Raw Material and Shot Weight */}   
                         <div className="flex mt-8 ml-16">
                             <div className="w-80 mr-10">
-                                <label className="text-gray-800 font-bold">Raw Material Required Per Piece <br />(Counting No)  :</label>
+                                <label className="ml-1 text-gray-800 font-bold">Raw Material Required Per Piece <br />(Counting No)  :</label>
                                 <input 
                                     type="text" 
                                     name="hsm_code" 
                                     value={productData.counting_no  || ""} 
                                     onChange={handleInputChange} 
-                                    className="border p-2 border-gray-400 mt-2 w-full" 
+                                    className="bg-gray-200 rounded-full focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72" 
                                     disabled={!isEditing} 
                                 />
                             </div>
                             <div className="w-80 mr-10 flex flex-col justify-end">
-                                <label className="text-gray-800 font-bold">Shot Weight (Counting Weight) :</label>
+                                <label className="ml-1 text-gray-800 font-bold">Shot Weight (Counting Weight) :</label>
                                 <input 
                                     type="text" 
                                     name="mhc_no" 
                                     value={productData.counting_weight || ""} 
                                     onChange={handleInputChange} 
-                                    className="border p-2 border-gray-400 mt-2 w-full" 
+                                    className="bg-gray-200 rounded-full focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72" 
                                     disabled={!isEditing} 
                                 />
                             </div>
@@ -647,24 +681,24 @@ const handleSelectChange = (index, value) => {
                          {/* Cycle Time and Efficiency */}                           
                         <div className="flex mt-8 ml-16">
                             <div className="w-80 mr-10">
-                                <label className="text-gray-800 font-bold">Cycle Time (Seconds)  :</label>
+                                <label className="ml-1 text-gray-800 font-bold">Cycle Time (Seconds)  :</label>
                                 <input 
                                     type="text" 
                                     name="hsm_code" 
                                     value={productData.cycle_time  || ""} 
                                     onChange={handleInputChange} 
-                                    className="border p-2 border-gray-400 mt-2 w-full" 
+                                    className="bg-gray-200 rounded-full focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72" 
                                     disabled={!isEditing} 
                                 />
                             </div>
                             <div className="w-80 mr-10">
-                                <label className="text-gray-800 font-bold">Efficiency (%) :</label>
+                                <label className="ml-1 text-gray-800 font-bold">Efficiency (%) :</label>
                                 <input 
                                     type="text" 
                                     name="mhc_no" 
                                     value={productData.efficiency || ""} 
                                     onChange={handleInputChange} 
-                                    className="border p-2 border-gray-400 mt-2 w-full" 
+                                    className="bg-gray-200 rounded-full focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72" 
                                     disabled={!isEditing} 
                                 />
                             </div>
@@ -674,24 +708,24 @@ const handleSelectChange = (index, value) => {
                          {/* Shift and Net Weight */}   
                         <div className="flex mt-8 ml-16">
                             <div className="w-80 mr-10">
-                                <label className="text-gray-800 font-bold">Production Per Shift  :</label>
+                                <label className="ml-1 text-gray-800 font-bold">Production Per Shift  :</label>
                                 <input 
                                     type="text" 
                                     name="hsm_code" 
                                     value={productData.production_per_shift  || ""} 
                                     onChange={handleInputChange} 
-                                    className="border p-2 border-gray-400 mt-2 w-full" 
+                                    className="bg-gray-200 rounded-full focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72" 
                                     disabled={!isEditing} 
                                 />
                             </div>
                             <div className="w-80 mr-10">
-                                <label className="text-gray-800 font-bold">Net Weight (Runner Per Piece) :</label>
+                                <label className="ml-1 text-gray-800 font-bold">Net Weight (Runner Per Piece) :</label>
                                 <input 
                                     type="text" 
                                     name="mhc_no" 
                                     value={productData.net_weight_runner_per_piece || ""} 
                                     onChange={handleInputChange} 
-                                    className="border p-2 border-gray-400 mt-2 w-full" 
+                                    className="bg-gray-200 rounded-full focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72" 
                                     disabled={!isEditing} 
                                 />
                             </div>
@@ -735,8 +769,9 @@ const handleSelectChange = (index, value) => {
                                         material.material_name
                                     )}
                                 </td>
+                                
                                 <td className="border text-center">
-                                    <button
+                                {( isAdmin) && (<button
                                         onClick={() => handleEditClick(index)}
                                         className={`w-20 py-1 text-white rounded-lg text-sm block mx-auto my-2 ${
                                             editIndex === index ? "bg-red-500" : "bg-slate-500"
@@ -744,7 +779,8 @@ const handleSelectChange = (index, value) => {
                                         aria-label={editIndex === index ? "Cancel Edit" : "Edit Material"}
                                     >
                                         {editIndex === index ? "Cancel" : "Edit"}
-                                    </button>
+                                    </button>)}
+                                    
                                 </td>
                             </tr>
                         ))}
@@ -828,33 +864,35 @@ const handleSelectChange = (index, value) => {
                                     </div>                               
                                 </div>
                                 
-
+                               
                                     {/* upload PDF  */}
-                                <div className='mr-10'>
+                                <div className='mr-10 ml-2'>
 
                                     {/* Custom file input button */}
-                                    <div className=" border w-[100px]">
+                                    <div className="  w-[100px]">
                                         <input
                                             type="file"
                                             name="uploadCheckPoint"
                                             id="uploadCheckPoint"
                                             onChange={handleFileChange}
                                             accept='application/pdf'
+                                            disabled={isSuperviser || isOperator    }
                                             multiple
                                             className="hidden"
-                                        />
-                                        <label
+                                        /> 
+                                        {( isAdmin) && (<label
                                             htmlFor="uploadCheckPoint"
                                             className="bg-[#926be6] text-white py-0.5 px-2 cursor-pointer rounded-md"
                                         >
                                             Choose File
-                                        </label>
+                                        </label>)}
+                                        
                                     </div>
                                    
                                     
 
-                                    <ul className="mt-1">
-                                        {uploadCheckPoints.length > 0 ? (
+                                    <ul className="mt-1"> 
+                                        { uploadCheckPoints.length > 0 ? (
                                         uploadCheckPoints.map((file, index) => (
                                             <li key={index} className="flex items-center justify-between text-gray-700">
                                             <span>{file.name}</span>
@@ -867,13 +905,13 @@ const handleSelectChange = (index, value) => {
                                             </button>
                                             </li>
                                         ))
-                                        ) : (
-                                        <li className="text-gray-500">No files selected</li>
+                                        ) : (                                             
+                                        <li className="text-gray-500"></li>
                                         )}
                                     </ul>
 
                                     {/* Show Upload button after files are selected */}
-                                    {uploadCheckPoints.length > 0 && (
+                                    { uploadCheckPoints.length > 0 && (
                                         <button
                                         onClick={handleUpload}
                                         className="mt-2 bg-[#926be6] text-white py-0.5 px-4 rounded-md hover:bg-blue-600"
@@ -894,24 +932,24 @@ const handleSelectChange = (index, value) => {
                         <div className='flex  mt-8 ml-16'>
                             {/* <p className='w-80 mr-10 '><strong className='text-gray-800 font-bold'>Manufacture By :</strong> {productData.product_histories?.mfg_by || 'No Description Available'}</p> */}
                             <div className="w-80 mr-10">
-                                <label className="text-gray-800 font-bold">Manufacture By :</label>
+                                <label className="ml-1 text-gray-800 font-bold">Manufacture By :</label>
                                 <input 
                                     type="text" 
                                     name="mhc_no" 
                                     value={productData.product_histories?.mfg_by || ""} 
                                     onChange={handleInputChange} 
-                                    className="border p-2 border-gray-400 mt-2 w-full" 
+                                    className="bg-gray-200 rounded-full focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72" 
                                     disabled={!isEditing} 
                                 />
                             </div>
                             <div className="w-80 mr-10">
-                                <label className="text-gray-800 font-bold">Manufactured Year :</label>
+                                <label className="ml-1 text-gray-800 font-bold">Manufactured Year :</label>
                                 <input 
                                     type="text" 
                                     name="mhc_no" 
                                     value={productData.product_histories?.mfg_year || ""} 
                                     onChange={handleInputChange} 
-                                    className="border p-2 border-gray-400 mt-2 w-full" 
+                                    className="bg-gray-200 rounded-full focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72" 
                                     disabled={!isEditing} 
                                 />
                             </div>
@@ -921,24 +959,24 @@ const handleSelectChange = (index, value) => {
                         <div className='flex  mt-8 ml-16'>
                             {/* <p className='w-80 mr-10 '><strong className='text-gray-800 font-bold'>Ownership :</strong> {productData.product_histories?.ownership || 'No Description Available'}</p> */}
                             <div className="w-80 mr-10">
-                                <label className="text-gray-800 font-bold">Ownership :</label>
+                                <label className="ml-1 text-gray-800 font-bold">Ownership :</label>
                                 <input 
                                     type="text" 
                                     name="mhc_no" 
                                     value={productData.product_histories?.ownership || ""} 
                                     onChange={handleInputChange} 
-                                    className="border p-2 border-gray-400 mt-2 w-full" 
+                                    className="bg-gray-200 rounded-full focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72" 
                                     disabled={!isEditing} 
                                 />
                             </div>
                             <div className="w-80 mr-10">
-                                <label className="text-gray-800 font-bold">Production Till Now :</label>
+                                <label className="ml-1 text-gray-800 font-bold">Production Till Now :</label>
                                 <input 
                                     type="text" 
                                     name="mhc_no" 
                                     value={productData.product_histories?.production_history || ""} 
                                     onChange={handleInputChange} 
-                                    className="border p-2 border-gray-400 mt-2 w-full" 
+                                    className="bg-gray-200 rounded-full focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72" 
                                     disabled={!isEditing} 
                                 />
                             </div>
@@ -954,24 +992,24 @@ const handleSelectChange = (index, value) => {
                         <div className='flex  mt-8 ml-16'>
                             {/* <p className='w-80 mr-10 '><strong className='text-gray-800 font-bold'>Bag Size :</strong> {productData.stockDetail?.bag_size || 'No Description Available'}</p> */}
                             <div className="w-80 mr-10">
-                                <label className="text-gray-800 font-bold">Bag Size :</label>
+                                <label className="ml-1 text-gray-800 font-bold">Bag Size :</label>
                                 <input 
                                     type="text" 
                                     name="mhc_no" 
                                     value={productData.stockDetail?.bag_size || ""} 
                                     onChange={handleInputChange} 
-                                    className="border p-2 border-gray-400 mt-2 w-full" 
+                                    className="bg-gray-200 rounded-full focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72" 
                                     disabled={!isEditing} 
                                 />
                             </div>
                             <div className="w-80 mr-10">
-                                <label className="text-gray-800 font-bold">Position :</label>
+                                <label className="ml-1 text-gray-800 font-bold">Position :</label>
                                 <input 
                                     type="text" 
                                     name="mhc_no" 
                                     value={productData.stockDetail?.position || ""} 
                                     onChange={handleInputChange} 
-                                    className="border p-2 border-gray-400 mt-2 w-full" 
+                                    className="bg-gray-200 rounded-full focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72" 
                                     disabled={!isEditing} 
                                 />
                             </div>
@@ -981,24 +1019,24 @@ const handleSelectChange = (index, value) => {
                         <div className='flex  mt-8 ml-16'>
                             {/* <p className='w-80 mr-10 '><strong className='text-gray-800 font-bold'>Rack Number :</strong> {productData.stockDetail?.rack_no || 'No Description Available'}</p> */}
                             <div className="w-80 mr-10">
-                                <label className="text-gray-800 font-bold">Rack Number :</label>
+                                <label className="ml-1 text-gray-800 font-bold">Rack Number :</label>
                                 <input 
                                     type="text" 
                                     name="mhc_no" 
                                     value={productData.stockDetail?.rack_no || ""} 
                                     onChange={handleInputChange} 
-                                    className="border p-2 border-gray-400 mt-2 w-full" 
+                                    className="bg-gray-200 rounded-full focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72" 
                                     disabled={!isEditing} 
                                 />
                             </div>
                             <div className="w-80 mr-10">
-                                <label className="text-gray-800 font-bold">Row :</label>
+                                <label className="ml-1 text-gray-800 font-bold">Row :</label>
                                 <input 
                                     type="text" 
                                     name="mhc_no" 
                                     value={productData.stockDetail?.row || ""} 
                                     onChange={handleInputChange} 
-                                    className="border p-2 border-gray-400 mt-2 w-full" 
+                                    className="bg-gray-200 rounded-full focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72" 
                                     disabled={!isEditing} 
                                 />
                             </div>
@@ -1008,24 +1046,24 @@ const handleSelectChange = (index, value) => {
                         <div className='flex  mt-8 ml-16'>
                             {/* <p className='w-80 mr-10 '><strong className='text-gray-800 font-bold'>Standard Packing :</strong> {productData.stockDetail?.std_packing || 'No Description Available'}</p> */}
                             <div className="w-80 mr-10">
-                                <label className="text-gray-800 font-bold">Standard Packing :</label>
+                                <label className="ml-1 text-gray-800 font-bold">Standard Packing :</label>
                                 <input 
                                     type="text" 
                                     name="mhc_no" 
                                     value={productData.stockDetail?.std_packing || ""} 
                                     onChange={handleInputChange} 
-                                    className="border p-2 border-gray-400 mt-2 w-full" 
+                                    className="bg-gray-200 rounded-full focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72" 
                                     disabled={!isEditing} 
                                 />
                             </div>
                             <div className="w-80 mr-10">
-                                <label className="text-gray-800 font-bold">Weight (KG) :</label>
+                                <label className="ml-1 text-gray-800 font-bold">Weight (KG) :</label>
                                 <input 
                                     type="text" 
                                     name="mhc_no" 
                                     value={ productData.stockDetail?.weight_kg || ""} 
                                     onChange={handleInputChange} 
-                                    className="border p-2 border-gray-400 mt-2 w-full" 
+                                    className="bg-gray-200 rounded-full focus:outline-none  border border-gray-400 mt-1 py-2 px-4 w-72" 
                                     disabled={!isEditing} 
                                 />
                             </div>
@@ -1034,7 +1072,7 @@ const handleSelectChange = (index, value) => {
 
 
                         {/* Edit & Save Button - Conditional Rendering */}
-                        <div className="mt-10">
+                        {/* <div className="mt-10">
                             {!isEditing ? (
                                 <button 
                                     className="bg-[#926be6] p-1.5 px-2 w-24 text-white rounded-lg"
@@ -1052,7 +1090,7 @@ const handleSelectChange = (index, value) => {
                                 </button>
                             )}
                         </div>
-                         
+                          */}
                         
                     </div>
                 </div>

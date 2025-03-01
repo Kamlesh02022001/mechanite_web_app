@@ -9,23 +9,46 @@ const VendorList = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    const router = useRouter();
-
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const response = await axios.get('http://localhost:4000/vendor/all');
-                setProductData(response.data);
-                console.log(response.data); // Log the data fetched
-            } catch (err) {
-                console.error('Error fetching data:', err);
-                setError('Failed to load customer data. Please try again later.');
-            } finally {
-                setIsLoading(false);
+    // const router = useRouter();
+     const router = useRouter();
+          const [token, setToken] = useState('');
+        
+          useEffect(() => {
+            const storedToken = sessionStorage.getItem('authToken');
+            
+            if (storedToken) {
+                setToken(storedToken);
+               
+            } else {
+                router.replace('/'); // Redirect to login if no token
             }
-        };
-        fetchData();
-    }, []);
+        }, []);
+           console.log("token", token);
+
+           useEffect(() => {
+            const fetchData = async () => {
+                if (!token) {
+                    // console.error('Authorization token is missing.');
+                    return;
+                }
+        
+                try {
+                    const response = await axios.get('https://machanite-be.onrender.com/vendor/all', {
+                        headers: { Authorization: `Bearer ${token}` }, // Include token in request headers
+                    });
+                    setProductData(response.data);
+                    console.log(response.data); // Log the data fetched
+                } catch (err) {
+                    console.error('Error fetching data:', err);
+                    setError('Failed to load customer data. Please try again later.');
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+            
+            fetchData();
+        }, [token]); // Re-run if token changes
+        
 
     const handleMoreClick = (id) => {
         router.push({
